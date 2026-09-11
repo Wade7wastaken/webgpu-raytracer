@@ -37,7 +37,7 @@ fn rngNextInt(state: ptr<function, u32>) -> u32 {
 // Construct a float with half-open range [0:1] using low 23 bits.
 // All zeroes yields 0.0, all ones yields the next smallest representable value below 1.0.
 fn float_construct_from_u32(m_in: u32) -> f32 {
-    return bitcast<f32>(m_in >> 9 | 0x3F800000u) - 1.0;
+    return bitcast<f32>((m_in >> 9) | 0x3F800000u) - 1.0;
 }
 
 // Pseudo-random value in half-open range [0:1) from a f32 seed.
