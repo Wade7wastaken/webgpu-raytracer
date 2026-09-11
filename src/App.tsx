@@ -1,32 +1,31 @@
-import computeShader from "./compute.wgsl?raw";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type FC } from "react";
 
-function App() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+import computeShader from "./compute.wgsl?raw";
+
+const App: FC = () => {
+  const canvasReference = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    async function main() {
-      const adapter = await navigator.gpu?.requestAdapter();
-      if (adapter == null) {
+    async function main(): Promise<void> {
+      const adapter = await navigator.gpu.requestAdapter();
+      if (adapter == undefined) {
         fail("need a browser that supports WebGPU");
         return;
       }
-
-      const presentationFormat = "bgra8unorm";
 
       const device = await adapter.requestDevice({
         requiredFeatures: ["bgra8unorm-storage"],
       });
 
-      if (canvasRef.current == null) {
+      if (canvasReference.current == undefined) {
         fail("couldn't find canvas");
         return;
       }
-      const canvas = canvasRef.current;
+      const canvas = canvasReference.current;
 
       const pre_context = canvas.getContext("webgpu");
 
-      if (pre_context == null) {
+      if (pre_context == undefined) {
         fail("couldn't create context");
         return;
       }
@@ -35,7 +34,7 @@ function App() {
 
       context.configure({
         device,
-        format: presentationFormat,
+        format: "bgra8unorm",
         // This is what's required to be able to write to a texture from a compute shader
         usage:
           GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
@@ -61,7 +60,7 @@ function App() {
         },
       });
 
-      function render(time: DOMHighResTimeStamp) {
+      function render(time: DOMHighResTimeStamp): void {
         time *= 0.001;
         uniformData[0] = time;
         device.queue.writeBuffer(uniformBuffer, 0, uniformData);
@@ -94,16 +93,16 @@ function App() {
       requestAnimationFrame(render);
     }
 
-    function fail(msg: string) {
-      return alert(msg);
+    function fail(message: string): void {
+      alert(message);
     }
 
-    main();
+    void main();
   }, []);
 
   return (
     <canvas
-      ref={canvasRef}
+      ref={canvasReference}
       className="block"
       width={(720 * 19) / 9}
       height={720}

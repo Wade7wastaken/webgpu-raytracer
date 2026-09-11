@@ -1,10 +1,22 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+import "./index.css";
+import App from "./App.tsx";
+
+const main = (): void => {
+  const root = document.querySelector("#root");
+
+  if (root == undefined) {
+    alert("couldn't find root");
+    return;
+  }
+
+  createRoot(root).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+};
+
+main();
