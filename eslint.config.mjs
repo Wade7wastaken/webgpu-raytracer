@@ -4,6 +4,7 @@ import js from "@eslint/js";
 import { defineConfig, globalIgnores } from "eslint/config";
 import prettier from "eslint-config-prettier";
 import importX from "eslint-plugin-import-x";
+import reactCompiler from "eslint-plugin-react-compiler";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import unicorn from "eslint-plugin-unicorn";
@@ -22,6 +23,7 @@ export default defineConfig([
       tseslint.configs.stylisticTypeChecked,
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
+      reactCompiler.configs.recommended,
       unicorn.configs.recommended,
       prettier,
     ],
@@ -90,6 +92,7 @@ export default defineConfig([
     rules: {
       "import-x/no-named-as-default-member": "off",
       "import-x/no-named-as-default": "off",
+      "import-x/default": "off",
       "@typescript-eslint/explicit-function-return-type": "off",
     },
   },
