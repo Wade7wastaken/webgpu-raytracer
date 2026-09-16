@@ -6,7 +6,9 @@ struct Uniforms {
     time: f32,
 }
 
-@group(0) @binding(0) var tex: texture_storage_2d<bgra8unorm, write>;
+// ${presentationFormat} is replaced by the preferred canvas presentation format
+// in js.
+@group(0) @binding(0) var tex: texture_storage_2d<${presentationFormat}, write>;
 @group(0) @binding(1) var<uniform> uniforms: Uniforms;
 @group(0) @binding(2) var<storage, read> vert: array<f32>;
 

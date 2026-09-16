@@ -53,8 +53,10 @@ const App: FC = () => {
         return;
       }
 
+      const hasBGRA8unormStorage = adapter.features.has("bgra8unorm-storage");
+
       const new_device = await adapter.requestDevice({
-        requiredFeatures: ["bgra8unorm-storage"],
+        requiredFeatures: hasBGRA8unormStorage ? ["bgra8unorm-storage"] : [],
       });
 
       if (isCanceled) {
@@ -77,16 +79,23 @@ const App: FC = () => {
         return;
       }
 
+      const presentationFormat = hasBGRA8unormStorage
+        ? navigator.gpu.getPreferredCanvasFormat()
+        : "rgba8unorm";
+
       context.configure({
         device,
-        format: "bgra8unorm",
+        format: presentationFormat,
         // This is what's required to be able to write to a texture from a compute shader
         usage:
           GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
       });
 
       const module = device.createShaderModule({
-        code: computeShader,
+        code: computeShader.replaceAll(
+          "${presentationFormat}",
+          () => presentationFormat,
+        ),
       });
 
       const uniformsNumberFloats = 64;
@@ -189,17 +198,26 @@ const App: FC = () => {
         const u = vup.clone().cross(w).normalize();
         const v = w.clone().cross(u);
 
-
         const camSpeed = 0.001 * deltaTime;
 
         if (keys.current.W) {
           camera_pos.current.add(
-            w.clone().cross(vup).cross(vup).normalize().multiplyScalar(camSpeed),
+            w
+              .clone()
+              .cross(vup)
+              .cross(vup)
+              .normalize()
+              .multiplyScalar(camSpeed),
           );
         }
         if (keys.current.S) {
           camera_pos.current.sub(
-            w.clone().cross(vup).cross(vup).normalize().multiplyScalar(camSpeed),
+            w
+              .clone()
+              .cross(vup)
+              .cross(vup)
+              .normalize()
+              .multiplyScalar(camSpeed),
           );
         }
         if (keys.current.A) {
@@ -445,7 +463,7 @@ const App: FC = () => {
               canvasReference.current != undefined
             ) {
               await canvasReference.current.requestPointerLock({
-                unadjustedMovement: true,
+                // unadjustedMovement: true,
               });
             }
           })();
