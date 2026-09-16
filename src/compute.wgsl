@@ -74,9 +74,13 @@ fn hit_triangle(r: ptr<function, Ray>, triIdx: u32, max_t: f32, outHitRec: ptr<f
 
     let edge1 = b - a;
     let edge2 = c - a;
-    let outward_normal = normalize(cross(edge1, edge2));
+    var outward_normal = normalize(cross(edge1, edge2));
 
     // --- stuff we can't do before ---
+    
+    if (dot(r.dir, outward_normal) > 0.0) {
+        outward_normal = -outward_normal;
+    }
 
     let ray_cross_e2 = cross(r.dir, edge2);
     let denom = dot(edge1, ray_cross_e2);
@@ -126,13 +130,12 @@ fn randNormalVector(state: ptr<function, u32>) -> vec3<f32> {
     return vec3(x, y, z);
 }
 
-fn ray_color(initialRay: Ray, state: ptr<function, u32>) -> vec3f {
+fn ray_color(initialRay: Ray, num_tris: u32, state: ptr<function, u32>) -> vec3f {
     var ray = initialRay;
 
     var rayColor = vec3f(1.0, 1.0, 1.0);
 
     var hitRec = HitRecord();
-    var min_t = 0; // double check
 
     let far_away = 10000000f;
 
@@ -140,8 +143,7 @@ fn ray_color(initialRay: Ray, state: ptr<function, u32>) -> vec3f {
 
         var max_t = far_away;
     
-        // don't call arrayLength here
-        for (var triIdx = 0u; triIdx < arrayLength(&vert) / 9; triIdx += 1) {
+        for (var triIdx = 0u; triIdx < num_tris; triIdx += 1) {
             if hit_triangle(&ray, triIdx, max_t, &hitRec) {
                 max_t = hitRec.t;
             }
@@ -149,6 +151,7 @@ fn ray_color(initialRay: Ray, state: ptr<function, u32>) -> vec3f {
 
         // we found an intersection closer than `far_away`
         if max_t < far_away {
+            // var scatter_dir = hitRec.n;
             var scatter_dir = hitRec.n + randNormalVector(state);
             if (abs(scatter_dir.x) < 1e-6 && abs(scatter_dir.y) < 1e-6 && abs(scatter_dir.z) < 1e-6) {
                 scatter_dir = hitRec.n;
@@ -158,7 +161,6 @@ fn ray_color(initialRay: Ray, state: ptr<function, u32>) -> vec3f {
         } else {
             let unit_dir = normalize(ray.dir);
             let a = 0.5 * (unit_dir.y + 1.0);
-            // return vec3f(0.3, 0.4, 0.5);
             return rayColor * (1.0-a)*vec3f(1.0, 1.0, 1.0) + a*vec3f(0.3, 0.7, 1.0);
         }
     }
@@ -189,9 +191,11 @@ fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
     let spp = 1;
     var pixel_color = vec3f(0.0, 0.0, 0.0);
 
+    let num_tris = arrayLength(&vert) / 9;
+
     for (var i = 0; i < spp; i += 1) {
         let r = get_ray(id.xy, &rseed);
-        let color = ray_color(r, &rseed);
+        let color = ray_color(r, num_tris, &rseed);
         pixel_color += clamp(color, vec3f(0.0, 0.0, 0.0), vec3f(1.0, 1.0, 1.0));
     }
     pixel_color /= f32(spp);

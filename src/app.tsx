@@ -19,7 +19,8 @@ const fail = (message: string): void => {
 const App: FC = () => {
   const canvasReference = useRef<HTMLCanvasElement>(null);
   const camera_pos = useRef<Vector3>(new Vector3(0.5, 0.5, 0));
-  const look_at = useRef<Vector3>(new Vector3(0.5, 0.5, -1).normalize());
+  const yaw = useRef(Math.PI / 2);
+  const pitch = useRef(0);
   const keys = useRef<Keys>({
     W: false,
     A: false,
@@ -30,7 +31,7 @@ const App: FC = () => {
   });
 
   const [fps, setFps] = useState(0);
-  const runningReference = useRef(true);
+  const runningReference = useRef(false);
 
   useEffect(() => {
     let isCanceled = false;
@@ -165,6 +166,7 @@ const App: FC = () => {
         canvasWidth: number,
         canvasHeight: number,
         time: number,
+        deltaTime: number,
       ): void => {
         const fov = 90;
         const focal_length = 1;
@@ -175,14 +177,49 @@ const App: FC = () => {
         const viewport_height = 2 * h * focal_length;
         const viewport_width = viewport_height * (canvasWidth / canvasHeight);
 
-        const camera_center = camera_pos.current.clone();
+        const direction_x = Math.cos(yaw.current) * Math.cos(pitch.current);
+        const direction_y = Math.sin(pitch.current);
+        const direction_z = Math.sin(yaw.current) * Math.cos(pitch.current);
 
-        const w = camera_center
-          .clone()
-          .sub(look_at.current.clone())
-          .normalize();
+        const w = new Vector3(
+          direction_x,
+          direction_y,
+          direction_z,
+        ).normalize();
         const u = vup.clone().cross(w).normalize();
         const v = w.clone().cross(u);
+
+
+        const camSpeed = 0.001 * deltaTime;
+
+        if (keys.current.W) {
+          camera_pos.current.add(
+            w.clone().cross(vup).cross(vup).normalize().multiplyScalar(camSpeed),
+          );
+        }
+        if (keys.current.S) {
+          camera_pos.current.sub(
+            w.clone().cross(vup).cross(vup).normalize().multiplyScalar(camSpeed),
+          );
+        }
+        if (keys.current.A) {
+          camera_pos.current.add(
+            w.clone().cross(vup).normalize().multiplyScalar(camSpeed),
+          );
+        }
+        if (keys.current.D) {
+          camera_pos.current.sub(
+            w.clone().cross(vup).normalize().multiplyScalar(camSpeed),
+          );
+        }
+        if (keys.current.Space) {
+          camera_pos.current.sub(vup.multiplyScalar(camSpeed));
+        }
+        if (keys.current.Shift) {
+          camera_pos.current.add(vup.multiplyScalar(camSpeed));
+        }
+
+        const camera_center = camera_pos.current.clone();
 
         const viewport_u = u.clone().multiplyScalar(viewport_width);
         const viewport_v = v.clone().multiplyScalar(viewport_height);
@@ -199,6 +236,12 @@ const App: FC = () => {
         const pixel00_loc = viewport_upper_left
           .clone()
           .add(pixel_delta_u.clone().add(pixel_delta_v).multiplyScalar(0.5));
+
+        // console.log("u:", u);
+        // console.log("v:", v);
+        // console.log("w:", w);
+        // console.log("cam:", camera_center);
+        // console.log();
 
         uniformData[0] = pixel00_loc.x;
         uniformData[1] = pixel00_loc.y;
@@ -243,7 +286,7 @@ const App: FC = () => {
         }
 
         // timing and fps logic
-        const deltaTime = lastTime - now;
+        const deltaTime = now - lastTime;
         lastTime = now;
         fpsUpdateFrameCount += 1;
         const elapsed = now - lastFpsUpdate;
@@ -253,27 +296,6 @@ const App: FC = () => {
           lastFpsUpdate = now;
         }
 
-        const movementSpeed = 0.001;
-
-        if (keys.current.W) {
-          camera_pos.current.z += movementSpeed * deltaTime;
-        }
-        if (keys.current.S) {
-          camera_pos.current.z -= movementSpeed * deltaTime;
-        }
-        if (keys.current.A) {
-          camera_pos.current.x += movementSpeed * deltaTime;
-        }
-        if (keys.current.D) {
-          camera_pos.current.x -= movementSpeed * deltaTime;
-        }
-        if (keys.current.Space) {
-          camera_pos.current.y += movementSpeed * deltaTime;
-        }
-        if (keys.current.Shift) {
-          camera_pos.current.y -= movementSpeed * deltaTime;
-        }
-
         const canvasTexture = context.getCurrentTexture();
 
         setUniforms(
@@ -281,6 +303,7 @@ const App: FC = () => {
           canvasTexture.width,
           canvasTexture.height,
           (now - startTime) / 1000,
+          deltaTime,
         );
         device.queue.writeBuffer(uniformBuffer, 0, uniformData);
         device.queue.writeBuffer(triangleBuffer, 0, triangleData);
@@ -326,7 +349,7 @@ const App: FC = () => {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
-      switch (event.key) {
+      switch (event.key.toLowerCase()) {
         case "w": {
           keys.current.W = true;
           break;
@@ -347,7 +370,7 @@ const App: FC = () => {
           keys.current.Space = true;
           break;
         }
-        case "Shift": {
+        case "shift": {
           keys.current.Shift = true;
           break;
         }
@@ -355,7 +378,7 @@ const App: FC = () => {
     };
 
     const onKeyUp = (event: KeyboardEvent): void => {
-      switch (event.key) {
+      switch (event.key.toLowerCase()) {
         case "w": {
           keys.current.W = false;
           break;
@@ -376,17 +399,35 @@ const App: FC = () => {
           keys.current.Space = false;
           break;
         }
-        case "Shift": {
+        case "shift": {
           keys.current.Shift = false;
           break;
         }
       }
     };
+
+    const sensitivity = 0.001;
+
+    const updateMousePosition = (event: MouseEvent): void => {
+      yaw.current += event.movementX * sensitivity;
+      pitch.current -= event.movementY * sensitivity;
+    };
+
+    const onLockChangeAlert = (): void => {
+      if (document.pointerLockElement === canvasReference.current) {
+        document.addEventListener("mousemove", updateMousePosition);
+      } else {
+        document.removeEventListener("mousemove", updateMousePosition);
+      }
+    };
+
     document.addEventListener("keydown", onKeyDown);
     document.addEventListener("keyup", onKeyUp);
+    document.addEventListener("pointerlockchange", onLockChangeAlert);
     return (): void => {
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("keyup", onKeyUp);
+      document.removeEventListener("pointerlockchange", onLockChangeAlert);
     };
   }, []);
 
@@ -397,6 +438,18 @@ const App: FC = () => {
         className="block"
         width={(720 * 19) / 9}
         height={720}
+        onClick={() => {
+          void (async (): Promise<void> => {
+            if (
+              !document.pointerLockElement &&
+              canvasReference.current != undefined
+            ) {
+              await canvasReference.current.requestPointerLock({
+                unadjustedMovement: true,
+              });
+            }
+          })();
+        }}
       ></canvas>
       <p>{fps.toFixed(2)}</p>
       <button
