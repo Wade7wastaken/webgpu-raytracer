@@ -13,9 +13,9 @@ const main = (): void => {
   }
 
   createRoot(root).render(
-    // <StrictMode>
+    <StrictMode>
       <App />
-    // </StrictMode>,
+    </StrictMode>
   );
 };
 

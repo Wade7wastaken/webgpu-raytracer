@@ -6,8 +6,8 @@ struct Uniforms {
     time: f32,
 }
 
-@group(0) @binding(0) var<uniform> uniforms: Uniforms;
-@group(0) @binding(1) var tex: texture_storage_2d<bgra8unorm, write>;
+@group(0) @binding(0) var tex: texture_storage_2d<bgra8unorm, write>;
+@group(0) @binding(1) var<uniform> uniforms: Uniforms;
 @group(0) @binding(2) var<storage, read> vert: array<f32>;
 
 fn initRng(pixel: vec2<u32>, frame: u32) -> u32 {
@@ -29,16 +29,10 @@ fn jenkinsHash(input: u32) -> u32 {
 fn rngNextInt(state: ptr<function, u32>) -> u32 {
     // PCG random number generator
     // Based on https://www.shadertoy.com/view/XlGcRh
-    // let newState = *state * 747796405u + 2891336453u;
-    // *state = newState;
-    // let word = ((newState >> ((newState >> 28u) + 4u)) ^ newState) * 277803737u;
-    // return (word >> 22u) ^ word;
-
-    *state = *state * 747796405u + 2891336453u;
-    // *state = newState;
-    return *state;
-    // let word = ((newState >> ((newState >> 28u) + 4u)) ^ newState) * 277803737u;
-    // return (word >> 22u) ^ word;
+    let newState = *state * 747796405u + 2891336453u;
+    *state = newState;
+    let word = ((newState >> ((newState >> 28u) + 4u)) ^ newState) * 277803737u;
+    return (word >> 22u) ^ word;
 }
 
 // Construct a float with half-open range [0:1] using low 23 bits.
@@ -142,7 +136,7 @@ fn ray_color(initialRay: Ray, state: ptr<function, u32>) -> vec3f {
 
     let far_away = 10000000f;
 
-    for (var bounce = 0u; bounce < 30; bounce += 1) {
+    for (var bounce = 0u; bounce < 10; bounce += 1) {
 
         var max_t = far_away;
     
@@ -178,9 +172,10 @@ fn sample_square(rseed: ptr<function, u32>) -> vec2f {
 
 fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
     let offset = sample_square(rseed);
+    let a = vec2f(pixel) + offset;
     let pixel_sample = uniforms.pixel00_loc
-        + (uniforms.pixel_delta_u * (f32(pixel.x) + offset.x))
-        + (uniforms.pixel_delta_v * (f32(pixel.y) + offset.y));
+        + (uniforms.pixel_delta_u * a.x)
+        + (uniforms.pixel_delta_v * a.y);
 
     let ray_direction = pixel_sample - uniforms.camera_center;
     return Ray(uniforms.camera_center, ray_direction);
@@ -191,7 +186,7 @@ fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
 ) {
     var rseed = initRng(id.xy, bitcast<u32>(uniforms.time));
 
-    let spp = 10;
+    let spp = 1;
     var pixel_color = vec3f(0.0, 0.0, 0.0);
 
     for (var i = 0; i < spp; i += 1) {
