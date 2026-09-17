@@ -6,10 +6,10 @@ struct Uniforms {
 }
 
 struct Triangle {
-    a: vec3f,
-    edge1: vec3f,
-    edge2: vec3f,
-    normal: vec3f,
+    a: vec4f,
+    edge1: vec4f,
+    edge2: vec4f,
+    normal: vec4f,
 }
 
 // ${presentationFormat} is replaced by the preferred canvas presentation format
@@ -68,14 +68,15 @@ struct HitRecord {
     p: vec3f,
     n: vec3f,
     t: f32,
+    mat: f32,
 }
 
 fn hit_triangle(r: ptr<function, Ray>, triIdx: u32, max_t: f32, outHitRec: ptr<function, HitRecord>) -> bool {
     let tri = triangles[triIdx];
-    let a = tri.a;
-    let edge1 = tri.edge1;
-    let edge2 = tri.edge2;
-    var normal = tri.normal;
+    let a = tri.a.xyz;
+    let edge1 = tri.edge1.xyz;
+    let edge2 = tri.edge2.xyz;
+    var normal = tri.normal.xyz;
 
     let ray_cross_e2 = cross(r.dir, edge2);
     let denom = dot(edge1, ray_cross_e2);
@@ -112,6 +113,7 @@ fn hit_triangle(r: ptr<function, Ray>, triIdx: u32, max_t: f32, outHitRec: ptr<f
     outHitRec.p = p;
     outHitRec.n = normal;
     outHitRec.t = t;
+    outHitRec.mat = tri.a.w;
     
     return true;
 }
@@ -158,17 +160,23 @@ fn ray_color(initialRay: Ray, num_tris: u32, state: ptr<function, u32>) -> vec3f
 
         // we found an intersection closer than `far_away`
         if max_t < far_away {
-            // var scatter_dir = hitRec.n;
-            var scatter_dir = hitRec.n + randNormalVector(state);
-            if (abs(scatter_dir.x) < 1e-6 && abs(scatter_dir.y) < 1e-6 && abs(scatter_dir.z) < 1e-6) {
-                scatter_dir = hitRec.n;
+            if (hitRec.mat == 0.0) {
+                var scatter_dir = hitRec.n + randNormalVector(state);
+                if (abs(scatter_dir.x) < 1e-6 && abs(scatter_dir.y) < 1e-6 && abs(scatter_dir.z) < 1e-6) {
+                    scatter_dir = hitRec.n;
+                }
+                rayColor *= vec3f(0.5, 0.5, 0.5);
+                ray = Ray(hitRec.p, scatter_dir);
+            } else if (hitRec.mat == 1.0) {
+                return rayColor * vec3f(1.0, 1.0, 1.0) * 100f;
+            } else {
+                return vec3f(1.0, 0.0, 1.0);
             }
-            rayColor *= vec3f(0.5, 0.5, 0.5);
-            ray = Ray(hitRec.p, scatter_dir);
         } else {
-            let unit_dir = normalize(ray.dir);
-            let a = 0.5 * (unit_dir.y + 1.0);
-            return rayColor * (1.0-a)*vec3f(1.0, 1.0, 1.0) + a*vec3f(0.3, 0.7, 1.0);
+            return vec3f(0.0, 0.0, 0.0);
+            // let unit_dir = normalize(ray.dir);
+            // let a = 0.5 * (unit_dir.y + 1.0);
+            // return rayColor * ((1.0-a)*vec3f(1.0, 1.0, 1.0) + a*vec3f(0.3, 0.7, 1.0));
         }
     }
 
@@ -198,7 +206,7 @@ fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
     
     var rseed = initRng(id.xy, bitcast<u32>(uniforms.time));
 
-    let spp = 20;
+    let spp = 200;
     var pixel_color = vec3f(0.0, 0.0, 0.0);
 
     let num_tris = arrayLength(&triangles);

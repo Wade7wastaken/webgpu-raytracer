@@ -17,17 +17,26 @@ const fail = (message: string): void => {
   alert(message);
 };
 
-const format_triangle = (triangle: Vector3[]): number[] => {
-  const a = triangle[0];
-  const b = triangle[1];
-  const c = triangle[2];
+const format_triangle = ({
+  points,
+  material,
+}: {
+  points: Vector3[];
+  material: number;
+  colorIdx: number;
+}): number[] => {
+  const a = points[0];
+  const b = points[1];
+  const c = points[2];
   const edge1 = b.clone().sub(a);
   const edge2 = c.clone().sub(a);
   const outward_normal = edge1.clone().cross(edge2).normalize();
-  return [...a, 0, ...edge1, 0, ...edge2, 0, ...outward_normal, 0];
+  return [...a, material, ...edge1, 0, ...edge2, 0, ...outward_normal, 0];
 };
 
-const format_triangles = (triangles: Vector3[][]): Float32Array => {
+const format_triangles = (
+  triangles: { points: Vector3[]; material: number; colorIdx: number }[],
+): Float32Array => {
   const buffer = [];
   for (const triangle of triangles) {
     buffer.push(...format_triangle(triangle));
@@ -37,70 +46,120 @@ const format_triangles = (triangles: Vector3[][]): Float32Array => {
 
 const triangleData = format_triangles([
   // back face
-  [
-    new Vector3(0, 0, -2), // bottom left
-    new Vector3(1, 0, -2), // bottom right
-    new Vector3(1, 1, -2), // top right
-  ],
+  {
+    points: [
+      new Vector3(0, 0, -2), // bottom left
+      new Vector3(1, 0, -2), // bottom right
+      new Vector3(1, 1, -2), // top right
+    ],
+    material: 0,
+    colorIdx: 0,
+  },
 
-  [
-    new Vector3(0, 0, -2), // bottom left
-    new Vector3(1, 1, -2), // top right
-    new Vector3(0, 1, -2), // top left
-  ],
+  {
+    points: [
+      new Vector3(0, 0, -2), // bottom left
+      new Vector3(1, 1, -2), // top right
+      new Vector3(0, 1, -2), // top left
+    ],
+    material: 0,
+    colorIdx: 0,
+  },
 
   // bottom face
-  [
-    new Vector3(0, 0, -2), // bottom left
-    new Vector3(0, 0, -1), // forward left
-    new Vector3(1, 0, -2), // bottom right
-  ],
+  {
+    points: [
+      new Vector3(0, 0, -2), // bottom left
+      new Vector3(0, 0, -1), // forward left
+      new Vector3(1, 0, -2), // bottom right
+    ],
+    material: 0,
+    colorIdx: 0,
+  },
 
-  [
-    new Vector3(1, 0, -2), // bottom right
-    new Vector3(0, 0, -1), // forward left
-    new Vector3(1, 0, -1), // forward right
-  ],
+  {
+    points: [
+      new Vector3(1, 0, -2), // bottom right
+      new Vector3(0, 0, -1), // forward left
+      new Vector3(1, 0, -1), // forward right
+    ],
+    material: 0,
+    colorIdx: 0,
+  },
 
   // top face
-  [
-    new Vector3(0, 1, -2), // bottom left
-    new Vector3(1, 1, -2), // bottom right
-    new Vector3(0, 1, -1), // forward left
-  ],
+  {
+    points: [
+      new Vector3(0, 1, -2), // bottom left
+      new Vector3(1, 1, -2), // bottom right
+      new Vector3(0, 1, -1), // forward left
+    ],
+    material: 0,
+    colorIdx: 0,
+  },
 
-  [
-    new Vector3(1, 1, -2), // bottom right
-    new Vector3(1, 1, -1), // forward right
-    new Vector3(0, 1, -1), // forward left
-  ],
-
-  // left face
-  [
-    new Vector3(0, 0, -2), // bottom left
-    new Vector3(0, 1, -2), // bottom left
-    new Vector3(0, 0, -1), // forward left
-  ],
-
-  [
-    new Vector3(0, 1, -2), // bottom left
-    new Vector3(0, 1, -1), // forward left
-    new Vector3(0, 0, -1), // forward left
-  ],
+  {
+    points: [
+      new Vector3(1, 1, -2), // bottom right
+      new Vector3(1, 1, -1), // forward right
+      new Vector3(0, 1, -1), // forward left
+    ],
+    material: 0,
+    colorIdx: 0,
+  },
 
   // left face
-  [
-    new Vector3(1, 0, -2), // bottom left
-    new Vector3(1, 0, -1), // forward left
-    new Vector3(1, 1, -2), // bottom left
-  ],
+  {
+    points: [
+      new Vector3(0, 0, -2), // bottom left
+      new Vector3(0, 1, -2), // bottom left
+      new Vector3(0, 0, -1), // forward left
+    ],
+    material: 0,
+    colorIdx: 0,
+  },
+
+  {
+    points: [
+      new Vector3(0, 1, -2), // bottom left
+      new Vector3(0, 1, -1), // forward left
+      new Vector3(0, 0, -1), // forward left
+    ],
+    material: 0,
+    colorIdx: 0,
+  },
+
+  // left face
+  {
+    points: [
+      new Vector3(1, 0, -2), // bottom left
+      new Vector3(1, 0, -1), // forward left
+      new Vector3(1, 1, -2), // bottom left
+    ],
+    material: 0,
+    colorIdx: 0,
+  },
 
   // right face
-  [
-    new Vector3(1, 1, -2), // bottom left
-    new Vector3(1, 0, -1), // forward left
-    new Vector3(1, 1, -1), // forward left
-  ],
+  {
+    points: [
+      new Vector3(1, 1, -2), // bottom left
+      new Vector3(1, 0, -1), // forward left
+      new Vector3(1, 1, -1), // forward left
+    ],
+    material: 0,
+    colorIdx: 0,
+  },
+  
+  {
+    points: [
+      new Vector3(0.3, 0.1, -1.5), // bottom left
+      new Vector3(0.5, 0.1, -1.5), // forward left
+      new Vector3(0.5, 0.1, -1.3), // forward left
+    ],
+    material: 1,
+    colorIdx: 0,
+  },
 ]);
 
 const App: FC = () => {
