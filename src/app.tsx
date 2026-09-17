@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState, type FC } from "react";
 import { Vector3 } from "three";
-import {
-  makeShaderDataDefinitions,
-  makeStructuredView,
-} from "webgpu-utils";
+import { makeShaderDataDefinitions, makeStructuredView } from "webgpu-utils";
 
 import computeShader from "./compute.wgsl?raw";
 
@@ -20,9 +17,95 @@ const fail = (message: string): void => {
   alert(message);
 };
 
+const format_triangle = (triangle: Vector3[]): number[] => {
+  const a = triangle[0];
+  const b = triangle[1];
+  const c = triangle[2];
+  const edge1 = b.clone().sub(a);
+  const edge2 = c.clone().sub(a);
+  const outward_normal = edge1.clone().cross(edge2).normalize();
+  return [...a, 0, ...edge1, 0, ...edge2, 0, ...outward_normal, 0];
+};
+
+const format_triangles = (triangles: Vector3[][]): Float32Array => {
+  const buffer = [];
+  for (const triangle of triangles) {
+    buffer.push(...format_triangle(triangle));
+  }
+  return new Float32Array(buffer);
+};
+
+const triangleData = format_triangles([
+  // back face
+  [
+    new Vector3(0, 0, -2), // bottom left
+    new Vector3(1, 0, -2), // bottom right
+    new Vector3(1, 1, -2), // top right
+  ],
+
+  [
+    new Vector3(0, 0, -2), // bottom left
+    new Vector3(1, 1, -2), // top right
+    new Vector3(0, 1, -2), // top left
+  ],
+
+  // bottom face
+  [
+    new Vector3(0, 0, -2), // bottom left
+    new Vector3(0, 0, -1), // forward left
+    new Vector3(1, 0, -2), // bottom right
+  ],
+
+  [
+    new Vector3(1, 0, -2), // bottom right
+    new Vector3(0, 0, -1), // forward left
+    new Vector3(1, 0, -1), // forward right
+  ],
+
+  // top face
+  [
+    new Vector3(0, 1, -2), // bottom left
+    new Vector3(1, 1, -2), // bottom right
+    new Vector3(0, 1, -1), // forward left
+  ],
+
+  [
+    new Vector3(1, 1, -2), // bottom right
+    new Vector3(1, 1, -1), // forward right
+    new Vector3(0, 1, -1), // forward left
+  ],
+
+  // left face
+  [
+    new Vector3(0, 0, -2), // bottom left
+    new Vector3(0, 1, -2), // bottom left
+    new Vector3(0, 0, -1), // forward left
+  ],
+
+  [
+    new Vector3(0, 1, -2), // bottom left
+    new Vector3(0, 1, -1), // forward left
+    new Vector3(0, 0, -1), // forward left
+  ],
+
+  // left face
+  [
+    new Vector3(1, 0, -2), // bottom left
+    new Vector3(1, 0, -1), // forward left
+    new Vector3(1, 1, -2), // bottom left
+  ],
+
+  // right face
+  [
+    new Vector3(1, 1, -2), // bottom left
+    new Vector3(1, 0, -1), // forward left
+    new Vector3(1, 1, -1), // forward left
+  ],
+]);
+
 const App: FC = () => {
   const canvasReference = useRef<HTMLCanvasElement>(null);
-  const camera_pos = useRef<Vector3>(new Vector3(0.5, 0.5, 0));
+  const camera_pos = useRef<Vector3>(new Vector3(0.5, 0.5, -0.5));
   const yaw = useRef(Math.PI / 2);
   const pitch = useRef(0);
   const keys = useRef<Keys>({
@@ -111,69 +194,16 @@ const App: FC = () => {
         shaderDefinitions.uniforms.uniforms,
       );
 
-      // const uniformsNumberFloats = 64;
-
-      // const uniformBufferSize = uniformsNumberFloats * 4;
       const uniformBuffer = device.createBuffer({
         size: uniformsData.arrayBuffer.byteLength,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
-      // const uniformData = new Float32Array(uniformsNumberFloats);
 
-      const triangleBufferSize = 10 * 9 * 4;
       const triangleBuffer = device.createBuffer({
-        size: triangleBufferSize,
+        size: triangleData.byteLength,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
       });
 
-      // prettier-ignore
-      const triangleData = new Float32Array([
-        // back face
-        0, 0, -2, // bottom left
-        1, 0, -2, // bottom right
-        1, 1, -2, // top right
-
-        0, 0, -2, // bottom left
-        1, 1, -2, // top right
-        0, 1, -2, // top left
-
-        // bottom face
-        0, 0, -2, // bottom left
-        0, 0, -1, // forward left
-        1, 0, -2, // bottom right
-
-        1, 0, -2, // bottom right
-        0, 0, -1, // forward left
-        1, 0, -1, // forward right
-
-        // top face
-        0, 1, -2, // bottom left
-        1, 1, -2, // bottom right
-        0, 1, -1, // forward left
-
-        1, 1, -2, // bottom right
-        1, 1, -1, // forward right
-        0, 1, -1, // forward left
-
-        // left face
-        0, 0, -2, // bottom left
-        0, 1, -2, // bottom left
-        0, 0, -1, // forward left
-
-        0, 1, -2, // bottom left
-        0, 1, -1, // forward left
-        0, 0, -1, // forward left
-
-        // left face
-        1, 0, -2, // bottom left
-        1, 0, -1, // forward left
-        1, 1, -2, // bottom left
-
-        1, 1, -2, // bottom left
-        1, 0, -1, // forward left
-        1, 1, -1, // forward left
-      ]);
-      
       device.queue.writeBuffer(triangleBuffer, 0, triangleData);
 
       const pipeline = device.createComputePipeline({
@@ -184,6 +214,8 @@ const App: FC = () => {
           entryPoint: "cs",
         },
       });
+
+      const bindGroupLayout = pipeline.getBindGroupLayout(0);
 
       const setUniforms = (
         canvasWidth: number,
@@ -269,12 +301,6 @@ const App: FC = () => {
           .clone()
           .add(pixel_delta_u.clone().add(pixel_delta_v).multiplyScalar(0.5));
 
-        // console.log("u:", u);
-        // console.log("v:", v);
-        // console.log("w:", w);
-        // console.log("cam:", camera_center);
-        // console.log();
-
         uniformsData.set({
           pixel00_loc: pixel00_loc.toArray(),
           pixel_delta: [...pixel_delta_u, 0, ...pixel_delta_v, 0],
@@ -322,7 +348,7 @@ const App: FC = () => {
         device.queue.writeBuffer(uniformBuffer, 0, uniformsData.arrayBuffer);
 
         const bindGroup = device.createBindGroup({
-          layout: pipeline.getBindGroupLayout(0),
+          layout: bindGroupLayout,
           entries: [
             { binding: 0, resource: canvasTexture.createView() },
             { binding: 1, resource: { buffer: uniformBuffer } },
@@ -335,7 +361,10 @@ const App: FC = () => {
         const pass = encoder.beginComputePass();
         pass.setPipeline(pipeline);
         pass.setBindGroup(0, bindGroup);
-        pass.dispatchWorkgroups(canvasTexture.width, canvasTexture.height);
+        pass.dispatchWorkgroups(
+          Math.ceil(canvasTexture.width / 16),
+          Math.ceil(canvasTexture.height / 16),
+        );
         pass.end();
 
         const commandBuffer = encoder.finish();

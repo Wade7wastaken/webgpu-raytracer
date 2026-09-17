@@ -5,11 +5,18 @@ struct Uniforms {
     time: f32,
 }
 
+struct Triangle {
+    a: vec3f,
+    edge1: vec3f,
+    edge2: vec3f,
+    normal: vec3f,
+}
+
 // ${presentationFormat} is replaced by the preferred canvas presentation format
 // in js.
 @group(0) @binding(0) var tex: texture_storage_2d<${presentationFormat}, write>;
 @group(0) @binding(1) var<uniform> uniforms: Uniforms;
-@group(0) @binding(2) var<storage, read> vert: array<f32>;
+@group(0) @binding(2) var<storage, read> triangles: array<Triangle>;
 
 fn initRng(pixel: vec2<u32>, frame: u32) -> u32 {
     // Adapted from https://github.com/boksajak/referencePT
@@ -57,11 +64,6 @@ fn ray_at(r: ptr<function, Ray>, t: f32) -> vec3f {
     return r.orig + t * r.dir;
 }
 
-fn getVertex(index: u32) -> vec3f {
-    let i = index * 3u;
-    return vec3f(vert[i], vert[i + 1u], vert[i + 2u]);
-}
-
 struct HitRecord {
     p: vec3f,
     n: vec3f,
@@ -69,19 +71,11 @@ struct HitRecord {
 }
 
 fn hit_triangle(r: ptr<function, Ray>, triIdx: u32, max_t: f32, outHitRec: ptr<function, HitRecord>) -> bool {
-    let a = getVertex(triIdx * 3);
-    let b = getVertex(triIdx * 3 + 1);
-    let c = getVertex(triIdx * 3 + 2);
-
-    let edge1 = b - a;
-    let edge2 = c - a;
-    var outward_normal = normalize(cross(edge1, edge2));
-
-    // --- stuff we can't do before ---
-    
-    if (dot(r.dir, outward_normal) > 0.0) {
-        outward_normal = -outward_normal;
-    }
+    let tri = triangles[triIdx];
+    let a = tri.a;
+    let edge1 = tri.edge1;
+    let edge2 = tri.edge2;
+    var normal = tri.normal;
 
     let ray_cross_e2 = cross(r.dir, edge2);
     let denom = dot(edge1, ray_cross_e2);
@@ -111,8 +105,12 @@ fn hit_triangle(r: ptr<function, Ray>, triIdx: u32, max_t: f32, outHitRec: ptr<f
 
     let p = ray_at(r, t);
 
+    if (dot(r.dir, normal) > 0.0) {
+        normal = -normal;
+    }
+
     outHitRec.p = p;
-    outHitRec.n = outward_normal;
+    outHitRec.n = normal;
     outHitRec.t = t;
     
     return true;
@@ -130,6 +128,14 @@ fn randNormalVector(state: ptr<function, u32>) -> vec3<f32> {
 
     return vec3(x, y, z);
 }
+
+// fn randNormalVector(state: ptr<function, u32>) -> vec3f {
+//     let z = 1.0 - 2.0 * rand(state);
+//     let r = sqrt(max(0.0, 1.0 - z * z));
+//     let phi = 6.2831853 * rand(state);
+//     return vec3f(r * cos(phi), r * sin(phi), z);
+// }
+
 
 fn ray_color(initialRay: Ray, num_tris: u32, state: ptr<function, u32>) -> vec3f {
     var ray = initialRay;
@@ -182,15 +188,20 @@ fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
     return Ray(uniforms.camera_center, ray_direction);
 }
 
-@compute @workgroup_size(1) fn cs(
+@compute @workgroup_size(16, 16) fn cs(
     @builtin(global_invocation_id) id: vec3u
 ) {
+    let texDims = textureDimensions(tex);
+    if (id.x >= texDims.x || id.y >= texDims.y) {
+        return;
+    }
+    
     var rseed = initRng(id.xy, bitcast<u32>(uniforms.time));
 
-    let spp = 1;
+    let spp = 20;
     var pixel_color = vec3f(0.0, 0.0, 0.0);
 
-    let num_tris = arrayLength(&vert) / 9;
+    let num_tris = arrayLength(&triangles);
 
     for (var i = 0; i < spp; i += 1) {
         let r = get_ray(id.xy, &rseed);
