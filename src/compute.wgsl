@@ -1,7 +1,6 @@
 struct Uniforms {
     pixel00_loc: vec3f,
-    pixel_delta_u: vec3f,
-    pixel_delta_v: vec3f,
+    pixel_delta: mat2x3f,
     camera_center: vec3f,
     time: f32,
 }
@@ -177,9 +176,7 @@ fn sample_square(rseed: ptr<function, u32>) -> vec2f {
 fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
     let offset = sample_square(rseed);
     let a = vec2f(pixel) + offset;
-    let pixel_sample = uniforms.pixel00_loc
-        + (uniforms.pixel_delta_u * a.x)
-        + (uniforms.pixel_delta_v * a.y);
+    let pixel_sample = uniforms.pixel00_loc + uniforms.pixel_delta * a;
 
     let ray_direction = pixel_sample - uniforms.camera_center;
     return Ray(uniforms.camera_center, ray_direction);

@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState, type FC } from "react";
 import { Vector3 } from "three";
+import {
+  makeShaderDataDefinitions,
+  makeStructuredView,
+} from "webgpu-utils";
 
 import computeShader from "./compute.wgsl?raw";
 
@@ -91,21 +95,30 @@ const App: FC = () => {
           GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
       });
 
+      const processedComputeShader = computeShader.replaceAll(
+        "${presentationFormat}",
+        () => presentationFormat,
+      );
+
       const module = device.createShaderModule({
-        code: computeShader.replaceAll(
-          "${presentationFormat}",
-          () => presentationFormat,
-        ),
+        code: processedComputeShader,
       });
 
-      const uniformsNumberFloats = 64;
+      const shaderDefinitions = makeShaderDataDefinitions(
+        processedComputeShader,
+      );
+      const uniformsData = makeStructuredView(
+        shaderDefinitions.uniforms.uniforms,
+      );
 
-      const uniformBufferSize = uniformsNumberFloats * 4;
+      // const uniformsNumberFloats = 64;
+
+      // const uniformBufferSize = uniformsNumberFloats * 4;
       const uniformBuffer = device.createBuffer({
-        size: uniformBufferSize,
+        size: uniformsData.arrayBuffer.byteLength,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
-      const uniformData = new Float32Array(uniformsNumberFloats);
+      // const uniformData = new Float32Array(uniformsNumberFloats);
 
       const triangleBufferSize = 10 * 9 * 4;
       const triangleBuffer = device.createBuffer({
@@ -160,6 +173,8 @@ const App: FC = () => {
         1, 0, -1, // forward left
         1, 1, -1, // forward left
       ]);
+      
+      device.queue.writeBuffer(triangleBuffer, 0, triangleData);
 
       const pipeline = device.createComputePipeline({
         label: "pipeline",
@@ -171,7 +186,6 @@ const App: FC = () => {
       });
 
       const setUniforms = (
-        uniformData: Float32Array<ArrayBuffer>,
         canvasWidth: number,
         canvasHeight: number,
         time: number,
@@ -261,29 +275,12 @@ const App: FC = () => {
         // console.log("cam:", camera_center);
         // console.log();
 
-        uniformData[0] = pixel00_loc.x;
-        uniformData[1] = pixel00_loc.y;
-        uniformData[2] = pixel00_loc.z;
-
-        uniformData[3] = 0;
-
-        uniformData[4] = pixel_delta_u.x;
-        uniformData[5] = pixel_delta_u.y;
-        uniformData[6] = pixel_delta_u.z;
-
-        uniformData[7] = 0;
-
-        uniformData[8] = pixel_delta_v.x;
-        uniformData[9] = pixel_delta_v.y;
-        uniformData[10] = pixel_delta_v.z;
-
-        uniformData[11] = 0;
-
-        uniformData[12] = camera_center.x;
-        uniformData[13] = camera_center.y;
-        uniformData[14] = camera_center.z;
-
-        uniformData[15] = time;
+        uniformsData.set({
+          pixel00_loc: pixel00_loc.toArray(),
+          pixel_delta: [...pixel_delta_u, 0, ...pixel_delta_v, 0],
+          camera_center: camera_center.toArray(),
+          time,
+        });
       };
 
       const now = performance.now();
@@ -317,14 +314,12 @@ const App: FC = () => {
         const canvasTexture = context.getCurrentTexture();
 
         setUniforms(
-          uniformData,
           canvasTexture.width,
           canvasTexture.height,
           (now - startTime) / 1000,
           deltaTime,
         );
-        device.queue.writeBuffer(uniformBuffer, 0, uniformData);
-        device.queue.writeBuffer(triangleBuffer, 0, triangleData);
+        device.queue.writeBuffer(uniformBuffer, 0, uniformsData.arrayBuffer);
 
         const bindGroup = device.createBindGroup({
           layout: pipeline.getBindGroupLayout(0),
