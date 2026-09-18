@@ -69,6 +69,7 @@ struct HitRecord {
     n: vec3f,
     t: f32,
     mat: f32,
+    colorIdx: f32,
 }
 
 fn hit_triangle(r: ptr<function, Ray>, triIdx: u32, max_t: f32, outHitRec: ptr<function, HitRecord>) -> bool {
@@ -85,22 +86,24 @@ fn hit_triangle(r: ptr<function, Ray>, triIdx: u32, max_t: f32, outHitRec: ptr<f
         return false;
     }
 
+    let inv_denom = 1.0 / denom;
+
     let s = r.orig - a;
-    let u = dot(s, ray_cross_e2) / denom;
+    let u = dot(s, ray_cross_e2) * inv_denom;
 
     if (u < 0.0 || u > 1.0) {
         return false;
     }
 
     let s_cross_e1 = cross(s, edge1);
-    let v = dot(r.dir, s_cross_e1) / denom;
+    let v = dot(r.dir, s_cross_e1) * inv_denom;
     if (v < 0.0 || u + v > 1.0) {
         return false;
     }
 
-    let t = dot(edge2, s_cross_e1) / denom;
+    let t = dot(edge2, s_cross_e1) * inv_denom;
 
-    if (t < 0.001 || t > max_t) {
+    if (t < 0.01 || t > max_t) {
         return false;
     }
 
@@ -114,6 +117,7 @@ fn hit_triangle(r: ptr<function, Ray>, triIdx: u32, max_t: f32, outHitRec: ptr<f
     outHitRec.n = normal;
     outHitRec.t = t;
     outHitRec.mat = tri.a.w;
+    outHitRec.colorIdx = tri.edge1.w;
     
     return true;
 }
@@ -148,7 +152,7 @@ fn ray_color(initialRay: Ray, num_tris: u32, state: ptr<function, u32>) -> vec3f
 
     let far_away = 10000000f;
 
-    for (var bounce = 0u; bounce < 10; bounce += 1) {
+    for (var bounce = 0u; bounce < 100; bounce += 1) {
 
         var max_t = far_away;
     
@@ -165,15 +169,16 @@ fn ray_color(initialRay: Ray, num_tris: u32, state: ptr<function, u32>) -> vec3f
                 if (abs(scatter_dir.x) < 1e-6 && abs(scatter_dir.y) < 1e-6 && abs(scatter_dir.z) < 1e-6) {
                     scatter_dir = hitRec.n;
                 }
-                rayColor *= vec3f(0.5, 0.5, 0.5);
+                let colors = array(vec3f(0.73, 0.73, 0.73), vec3f(0.65, 0.05, 0.05), vec3f(0.12, 0.45, 0.15));
+                rayColor *= colors[u32(hitRec.colorIdx)];
                 ray = Ray(hitRec.p, scatter_dir);
             } else if (hitRec.mat == 1.0) {
-                return rayColor * vec3f(1.0, 1.0, 1.0) * 100f;
+                return rayColor * vec3f(1.0, 193.0 / 255.0, 104.0 / 255.0) * 15f;
             } else {
                 return vec3f(1.0, 0.0, 1.0);
             }
         } else {
-            return vec3f(0.0, 0.0, 0.0);
+            return rayColor * vec3f(0.1, 0.1, 0.1);
             // let unit_dir = normalize(ray.dir);
             // let a = 0.5 * (unit_dir.y + 1.0);
             // return rayColor * ((1.0-a)*vec3f(1.0, 1.0, 1.0) + a*vec3f(0.3, 0.7, 1.0));
@@ -206,7 +211,7 @@ fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
     
     var rseed = initRng(id.xy, bitcast<u32>(uniforms.time));
 
-    let spp = 200;
+    let spp = 10;
     var pixel_color = vec3f(0.0, 0.0, 0.0);
 
     let num_tris = arrayLength(&triangles);
@@ -214,9 +219,9 @@ fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
     for (var i = 0; i < spp; i += 1) {
         let r = get_ray(id.xy, &rseed);
         let color = ray_color(r, num_tris, &rseed);
-        pixel_color += clamp(color, vec3f(0.0, 0.0, 0.0), vec3f(1.0, 1.0, 1.0));
+        pixel_color += color;
     }
     pixel_color /= f32(spp);
     
-    textureStore(tex, id.xy, vec4f(pixel_color, 1.0));
+    textureStore(tex, id.xy, vec4f(clamp(pixel_color, vec3f(0.0, 0.0, 0.0), vec3f(1.0, 1.0, 1.0)), 1.0));
 }

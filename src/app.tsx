@@ -20,6 +20,7 @@ const fail = (message: string): void => {
 const format_triangle = ({
   points,
   material,
+  colorIdx,
 }: {
   points: Vector3[];
   material: number;
@@ -31,7 +32,7 @@ const format_triangle = ({
   const edge1 = b.clone().sub(a);
   const edge2 = c.clone().sub(a);
   const outward_normal = edge1.clone().cross(edge2).normalize();
-  return [...a, material, ...edge1, 0, ...edge2, 0, ...outward_normal, 0];
+  return [...a, material, ...edge1, colorIdx, ...edge2, 0, ...outward_normal, 0];
 };
 
 const format_triangles = (
@@ -116,7 +117,7 @@ const triangleData = format_triangles([
       new Vector3(0, 0, -1), // forward left
     ],
     material: 0,
-    colorIdx: 0,
+    colorIdx: 1,
   },
 
   {
@@ -126,10 +127,10 @@ const triangleData = format_triangles([
       new Vector3(0, 0, -1), // forward left
     ],
     material: 0,
-    colorIdx: 0,
+    colorIdx: 1,
   },
 
-  // left face
+  // right face
   {
     points: [
       new Vector3(1, 0, -2), // bottom left
@@ -137,10 +138,9 @@ const triangleData = format_triangles([
       new Vector3(1, 1, -2), // bottom left
     ],
     material: 0,
-    colorIdx: 0,
+    colorIdx: 2,
   },
 
-  // right face
   {
     points: [
       new Vector3(1, 1, -2), // bottom left
@@ -148,14 +148,24 @@ const triangleData = format_triangles([
       new Vector3(1, 1, -1), // forward left
     ],
     material: 0,
-    colorIdx: 0,
+    colorIdx: 2,
   },
   
+  // light
   {
     points: [
-      new Vector3(0.3, 0.1, -1.5), // bottom left
-      new Vector3(0.5, 0.1, -1.5), // forward left
-      new Vector3(0.5, 0.1, -1.3), // forward left
+      new Vector3(0.3, 0.005, -1.7),
+      new Vector3(0.7, 0.005, -1.7),
+      new Vector3(0.7, 0.005, -1.3),
+    ],
+    material: 1,
+    colorIdx: 0,
+  },
+  {
+    points: [
+      new Vector3(0.3, 0.005, -1.7),
+      new Vector3(0.3, 0.005, -1.3),
+      new Vector3(0.7, 0.005, -1.3),
     ],
     material: 1,
     colorIdx: 0,
@@ -164,7 +174,7 @@ const triangleData = format_triangles([
 
 const App: FC = () => {
   const canvasReference = useRef<HTMLCanvasElement>(null);
-  const camera_pos = useRef<Vector3>(new Vector3(0.5, 0.5, -0.5));
+  const camera_pos = useRef<Vector3>(new Vector3(0.5, 0.5, 0.4));
   const yaw = useRef(Math.PI / 2);
   const pitch = useRef(0);
   const keys = useRef<Keys>({
@@ -282,7 +292,7 @@ const App: FC = () => {
         time: number,
         deltaTime: number,
       ): void => {
-        const fov = 90;
+        const fov = 40;
         const focal_length = 1;
         const vup = new Vector3(0, 1, 0);
 
