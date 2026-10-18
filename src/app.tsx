@@ -3,6 +3,7 @@ import { Vector3 } from "three";
 import { makeShaderDataDefinitions, makeStructuredView } from "webgpu-utils";
 
 import computeShader from "./compute.wgsl?raw";
+import { Mesh, type Triangle } from "./mesh";
 
 type Keys = {
   W: boolean;
@@ -18,26 +19,29 @@ const fail = (message: string): void => {
 };
 
 const format_triangle = ({
-  points,
-  material,
-  colorIdx,
-}: {
-  points: Vector3[];
-  material: number;
-  colorIdx: number;
-}): number[] => {
-  const a = points[0];
-  const b = points[1];
-  const c = points[2];
+  vertices,
+  materialIndex,
+  colorIndex,
+}: Triangle): number[] => {
+  const a = vertices[0];
+  const b = vertices[1];
+  const c = vertices[2];
   const edge1 = b.clone().sub(a);
   const edge2 = c.clone().sub(a);
   const outward_normal = edge1.clone().cross(edge2).normalize();
-  return [...a, material, ...edge1, colorIdx, ...edge2, 0, ...outward_normal, 0];
+  return [
+    ...a,
+    materialIndex,
+    ...edge1,
+    colorIndex,
+    ...edge2,
+    0,
+    ...outward_normal,
+    0,
+  ];
 };
 
-const format_triangles = (
-  triangles: { points: Vector3[]; material: number; colorIdx: number }[],
-): Float32Array => {
+const format_triangles = (triangles: Triangle[]): Float32Array => {
   const buffer = [];
   for (const triangle of triangles) {
     buffer.push(...format_triangle(triangle));
@@ -45,132 +49,53 @@ const format_triangles = (
   return new Float32Array(buffer);
 };
 
-const triangleData = format_triangles([
-  // back face
-  {
-    points: [
-      new Vector3(0, 0, -2), // bottom left
-      new Vector3(1, 0, -2), // bottom right
-      new Vector3(1, 1, -2), // top right
-    ],
-    material: 0,
-    colorIdx: 0,
-  },
+const back_face = Mesh.quad(
+  new Vector3(0, 0, -2),
+  new Vector3(1, 0, 0),
+  new Vector3(0, 1, 0),
+);
+const bottom_face = Mesh.quad(
+  new Vector3(0, 0, -2),
+  new Vector3(0, 0, 1),
+  new Vector3(1, 0, 0),
+);
+const top_face = Mesh.quad(
+  new Vector3(0, 1, -2),
+  new Vector3(0, 0, 1),
+  new Vector3(1, 0, 0),
+);
+const left_face = Mesh.quad(
+  new Vector3(0, 0, -2),
+  new Vector3(0, 1, 0),
+  new Vector3(0, 0, 1),
+  0,
+  1,
+);
+const right_face = Mesh.quad(
+  new Vector3(1, 0, -2),
+  new Vector3(0, 1, 0),
+  new Vector3(0, 0, 1),
+  0,
+  2,
+);
+const light = Mesh.quad(
+  new Vector3(0.3, 0.995, -1.7),
+  new Vector3(0.4, 0, 0),
+  new Vector3(0, 0, 0.4),
+  1,
+  0,
+);
 
-  {
-    points: [
-      new Vector3(0, 0, -2), // bottom left
-      new Vector3(1, 1, -2), // top right
-      new Vector3(0, 1, -2), // top left
-    ],
-    material: 0,
-    colorIdx: 0,
-  },
+const scene = new Mesh(
+  back_face,
+  bottom_face,
+  top_face,
+  left_face,
+  right_face,
+  light,
+);
 
-  // bottom face
-  {
-    points: [
-      new Vector3(0, 0, -2), // bottom left
-      new Vector3(0, 0, -1), // forward left
-      new Vector3(1, 0, -2), // bottom right
-    ],
-    material: 0,
-    colorIdx: 0,
-  },
-
-  {
-    points: [
-      new Vector3(1, 0, -2), // bottom right
-      new Vector3(0, 0, -1), // forward left
-      new Vector3(1, 0, -1), // forward right
-    ],
-    material: 0,
-    colorIdx: 0,
-  },
-
-  // top face
-  {
-    points: [
-      new Vector3(0, 1, -2), // bottom left
-      new Vector3(1, 1, -2), // bottom right
-      new Vector3(0, 1, -1), // forward left
-    ],
-    material: 0,
-    colorIdx: 0,
-  },
-
-  {
-    points: [
-      new Vector3(1, 1, -2), // bottom right
-      new Vector3(1, 1, -1), // forward right
-      new Vector3(0, 1, -1), // forward left
-    ],
-    material: 0,
-    colorIdx: 0,
-  },
-
-  // left face
-  {
-    points: [
-      new Vector3(0, 0, -2), // bottom left
-      new Vector3(0, 1, -2), // bottom left
-      new Vector3(0, 0, -1), // forward left
-    ],
-    material: 0,
-    colorIdx: 1,
-  },
-
-  {
-    points: [
-      new Vector3(0, 1, -2), // bottom left
-      new Vector3(0, 1, -1), // forward left
-      new Vector3(0, 0, -1), // forward left
-    ],
-    material: 0,
-    colorIdx: 1,
-  },
-
-  // right face
-  {
-    points: [
-      new Vector3(1, 0, -2), // bottom left
-      new Vector3(1, 0, -1), // forward left
-      new Vector3(1, 1, -2), // bottom left
-    ],
-    material: 0,
-    colorIdx: 2,
-  },
-
-  {
-    points: [
-      new Vector3(1, 1, -2), // bottom left
-      new Vector3(1, 0, -1), // forward left
-      new Vector3(1, 1, -1), // forward left
-    ],
-    material: 0,
-    colorIdx: 2,
-  },
-  
-  // light
-  {
-    points: [
-      new Vector3(0.3, 0.005, -1.7),
-      new Vector3(0.7, 0.005, -1.7),
-      new Vector3(0.7, 0.005, -1.3),
-    ],
-    material: 1,
-    colorIdx: 0,
-  },
-  {
-    points: [
-      new Vector3(0.3, 0.005, -1.7),
-      new Vector3(0.3, 0.005, -1.3),
-      new Vector3(0.7, 0.005, -1.3),
-    ],
-    material: 1,
-    colorIdx: 0,
-  },
-]);
+const triangleData = format_triangles(scene.triangles);
 
 const App: FC = () => {
   const canvasReference = useRef<HTMLCanvasElement>(null);
@@ -188,6 +113,9 @@ const App: FC = () => {
 
   const [fps, setFps] = useState(0);
   const runningReference = useRef(false);
+
+  const rays_per_pixel = useRef(10);
+  const max_bounces = useRef(100);
 
   useEffect(() => {
     let isCanceled = false;
@@ -346,16 +274,16 @@ const App: FC = () => {
           );
         }
         if (keys.current.Space) {
-          camera_pos.current.sub(vup.multiplyScalar(camSpeed));
+          camera_pos.current.add(vup.multiplyScalar(camSpeed));
         }
         if (keys.current.Shift) {
-          camera_pos.current.add(vup.multiplyScalar(camSpeed));
+          camera_pos.current.sub(vup.multiplyScalar(camSpeed));
         }
 
         const camera_center = camera_pos.current.clone();
 
         const viewport_u = u.clone().multiplyScalar(viewport_width);
-        const viewport_v = v.clone().multiplyScalar(viewport_height);
+        const viewport_v = v.negate().clone().multiplyScalar(viewport_height);
 
         const pixel_delta_u = viewport_u.clone().divideScalar(canvasWidth);
         const pixel_delta_v = viewport_v.clone().divideScalar(canvasHeight);
@@ -375,6 +303,8 @@ const App: FC = () => {
           pixel_delta: [...pixel_delta_u, 0, ...pixel_delta_v, 0],
           camera_center: camera_center.toArray(),
           time,
+          rays_per_pixel: rays_per_pixel.current,
+          max_bounces: max_bounces.current,
         });
       };
 
@@ -521,7 +451,7 @@ const App: FC = () => {
 
     const updateMousePosition = (event: MouseEvent): void => {
       yaw.current += event.movementX * sensitivity;
-      pitch.current -= event.movementY * sensitivity;
+      pitch.current += event.movementY * sensitivity;
     };
 
     const onLockChangeAlert = (): void => {
@@ -543,11 +473,56 @@ const App: FC = () => {
   }, []);
 
   return (
-    <>
+    <div className="p-4 gap-2">
+      <div className="flex gap-2 mb-2 items-center-safe">
+        <button
+          className="bg-gray-500 px-2 py-1 rounded hover:cursor-pointer"
+          onClick={() => {
+            runningReference.current = true;
+          }}
+        >
+          Start
+        </button>
+        <button
+          className="bg-gray-500 px-2 py-1 rounded hover:cursor-pointer"
+          onClick={() => {
+            runningReference.current = false;
+          }}
+        >
+          Stop
+        </button>
+        <p>FPS: {fps.toFixed(2)}</p>
+        <label className="ml-16 flex gap-1">
+          Rays per pixel:
+          <input
+            type="range"
+            min={1}
+            max={100}
+            step={1}
+            defaultValue={10}
+            onChange={(event) => {
+              rays_per_pixel.current = Number.parseInt(event.target.value);
+            }}
+          />
+        </label>
+        <label className="flex gap-1">
+          Max ray bounces:
+          <input
+            type="range"
+            min={1}
+            max={100}
+            step={1}
+            defaultValue={10}
+            onChange={(event) => {
+              max_bounces.current = Number.parseInt(event.target.value);
+            }}
+          />
+        </label>
+      </div>
       <canvas
         ref={canvasReference}
-        className="block"
-        width={(720 * 19) / 9}
+        className="block border"
+        width={(720 * 16) / 9}
         height={720}
         onClick={() => {
           void (async (): Promise<void> => {
@@ -562,22 +537,7 @@ const App: FC = () => {
           })();
         }}
       ></canvas>
-      <p>{fps.toFixed(2)}</p>
-      <button
-        onClick={() => {
-          runningReference.current = true;
-        }}
-      >
-        Start
-      </button>
-      <button
-        onClick={() => {
-          runningReference.current = false;
-        }}
-      >
-        Stop
-      </button>
-    </>
+    </div>
   );
 };
 

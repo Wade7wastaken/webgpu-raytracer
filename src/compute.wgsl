@@ -3,11 +3,13 @@ struct Uniforms {
     pixel_delta: mat2x3f,
     camera_center: vec3f,
     time: f32,
+    rays_per_pixel: u32,
+    max_bounces: u32,
 }
 
 struct Triangle {
-    a: vec4f,
-    edge1: vec4f,
+    a: vec4f, // w is material
+    edge1: vec4f, // w is color
     edge2: vec4f,
     normal: vec4f,
 }
@@ -143,7 +145,7 @@ fn randNormalVector(state: ptr<function, u32>) -> vec3<f32> {
 // }
 
 
-fn ray_color(initialRay: Ray, num_tris: u32, state: ptr<function, u32>) -> vec3f {
+fn ray_color(initialRay: Ray, num_tris: u32, max_bounces: u32, state: ptr<function, u32>) -> vec3f {
     var ray = initialRay;
 
     var rayColor = vec3f(1.0, 1.0, 1.0);
@@ -152,7 +154,7 @@ fn ray_color(initialRay: Ray, num_tris: u32, state: ptr<function, u32>) -> vec3f
 
     let far_away = 10000000f;
 
-    for (var bounce = 0u; bounce < 100; bounce += 1) {
+    for (var bounce = 0u; bounce < max_bounces; bounce += 1) {
 
         var max_t = far_away;
     
@@ -211,14 +213,14 @@ fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
     
     var rseed = initRng(id.xy, bitcast<u32>(uniforms.time));
 
-    let spp = 10;
+    let spp = uniforms.rays_per_pixel;
     var pixel_color = vec3f(0.0, 0.0, 0.0);
 
     let num_tris = arrayLength(&triangles);
 
-    for (var i = 0; i < spp; i += 1) {
+    for (var i = 0u; i < spp; i += 1) {
         let r = get_ray(id.xy, &rseed);
-        let color = ray_color(r, num_tris, &rseed);
+        let color = ray_color(r, num_tris, uniforms.max_bounces, &rseed);
         pixel_color += color;
     }
     pixel_color /= f32(spp);
