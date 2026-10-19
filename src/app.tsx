@@ -3,7 +3,10 @@ import { Vector3 } from "three";
 import { makeShaderDataDefinitions, makeStructuredView } from "webgpu-utils";
 
 import computeShader from "./compute.wgsl?raw";
-import { Mesh, type Triangle } from "./mesh";
+import { Mesh, sceneObjectToTriangles } from "./mesh";
+import { MainEditor } from "./sceneEditor";
+
+import type { SceneObject, Triangle } from "./mesh";
 
 type Keys = {
   W: boolean;
@@ -95,7 +98,7 @@ const scene = new Mesh(
   light,
 );
 
-const triangleData = format_triangles(scene.triangles);
+// const triangleData = format_triangles(scene.triangles);
 
 const App: FC = () => {
   const canvasReference = useRef<HTMLCanvasElement>(null);
@@ -116,6 +119,17 @@ const App: FC = () => {
 
   const rays_per_pixel = useRef(10);
   const max_bounces = useRef(100);
+
+  // const sceneObjects = objectStore(state => state.sceneObjects);
+
+  const sceneReference = useRef<SceneObject>({
+    type: "list",
+    id: 0,
+    children: [],
+    enabled: true,
+  }); // main source of truth for the scene
+  const sceneTriangles = useRef(format_triangles([])); // updated in setUniforms when sceneReference changes
+  const sceneStale = useRef(false); // true when sceneReference is stale
 
   useEffect(() => {
     let isCanceled = false;
@@ -196,12 +210,12 @@ const App: FC = () => {
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
 
-      const triangleBuffer = device.createBuffer({
-        size: triangleData.byteLength,
+      let triangleBuffer = device.createBuffer({
+        size: Math.max(sceneTriangles.current.byteLength, 64),
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
       });
 
-      device.queue.writeBuffer(triangleBuffer, 0, triangleData);
+      device.queue.writeBuffer(triangleBuffer, 0, sceneTriangles.current);
 
       const pipeline = device.createComputePipeline({
         label: "pipeline",
@@ -219,6 +233,7 @@ const App: FC = () => {
         canvasHeight: number,
         time: number,
         deltaTime: number,
+        device: GPUDevice,
       ): void => {
         const fov = 40;
         const focal_length = 1;
@@ -298,6 +313,24 @@ const App: FC = () => {
           .clone()
           .add(pixel_delta_u.clone().add(pixel_delta_v).multiplyScalar(0.5));
 
+        if (sceneStale.current) {
+          sceneTriangles.current = format_triangles(
+            sceneObjectToTriangles(sceneReference.current),
+          );
+          if (triangleBuffer.size < sceneTriangles.current.byteLength) {
+            alert(
+              `recreating triangle buffer. old: ${triangleBuffer.size}, new: ${sceneTriangles.current.byteLength}`,
+            );
+            triangleBuffer.destroy();
+            triangleBuffer = device.createBuffer({
+              size: Math.max(sceneTriangles.current.byteLength, 64),
+              usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+            });
+          }
+          device.queue.writeBuffer(triangleBuffer, 0, sceneTriangles.current);
+          sceneStale.current = false;
+        }
+
         uniformsData.set({
           pixel00_loc: pixel00_loc.toArray(),
           pixel_delta: [...pixel_delta_u, 0, ...pixel_delta_v, 0],
@@ -305,6 +338,7 @@ const App: FC = () => {
           time,
           rays_per_pixel: rays_per_pixel.current,
           max_bounces: max_bounces.current,
+          num_tris: sceneObjectToTriangles(sceneReference.current).length, // FIXME
         });
       };
 
@@ -343,6 +377,7 @@ const App: FC = () => {
           canvasTexture.height,
           (now - startTime) / 1000,
           deltaTime,
+          device,
         );
         device.queue.writeBuffer(uniformBuffer, 0, uniformsData.arrayBuffer);
 
@@ -408,6 +443,7 @@ const App: FC = () => {
           break;
         }
         case " ": {
+          event.preventDefault();
           keys.current.Space = true;
           break;
         }
@@ -473,70 +509,81 @@ const App: FC = () => {
   }, []);
 
   return (
-    <div className="p-4 gap-2">
-      <div className="flex gap-2 mb-2 items-center-safe">
-        <button
-          className="bg-gray-500 px-2 py-1 rounded hover:cursor-pointer"
-          onClick={() => {
-            runningReference.current = true;
-          }}
-        >
-          Start
-        </button>
-        <button
-          className="bg-gray-500 px-2 py-1 rounded hover:cursor-pointer"
-          onClick={() => {
-            runningReference.current = false;
-          }}
-        >
-          Stop
-        </button>
-        <p>FPS: {fps.toFixed(2)}</p>
-        <label className="ml-16 flex gap-1">
-          Rays per pixel:
-          <input
-            type="range"
-            min={1}
-            max={100}
-            step={1}
-            defaultValue={10}
-            onChange={(event) => {
-              rays_per_pixel.current = Number.parseInt(event.target.value);
+    <div className="flex p-4 gap-8">
+      <div>
+        <div className="flex gap-2 mb-2 items-center-safe">
+          <button
+            className="bg-gray-500 px-2 py-1 rounded hover:cursor-pointer"
+            onClick={() => {
+              runningReference.current = true;
             }}
-          />
-        </label>
-        <label className="flex gap-1">
-          Max ray bounces:
-          <input
-            type="range"
-            min={1}
-            max={100}
-            step={1}
-            defaultValue={10}
-            onChange={(event) => {
-              max_bounces.current = Number.parseInt(event.target.value);
+          >
+            Start
+          </button>
+          <button
+            className="bg-gray-500 px-2 py-1 rounded hover:cursor-pointer"
+            onClick={() => {
+              runningReference.current = false;
             }}
-          />
-        </label>
+          >
+            Stop
+          </button>
+          <p>FPS: {fps.toFixed(2)}</p>
+          <label className="ml-16 flex gap-1">
+            Rays per pixel:
+            <input
+              type="range"
+              min={1}
+              max={100}
+              step={1}
+              defaultValue={10}
+              onChange={(event) => {
+                rays_per_pixel.current = Number.parseInt(event.target.value);
+              }}
+            />
+          </label>
+          <label className="flex gap-1">
+            Max ray bounces:
+            <input
+              type="range"
+              min={1}
+              max={100}
+              step={1}
+              defaultValue={10}
+              onChange={(event) => {
+                max_bounces.current = Number.parseInt(event.target.value);
+              }}
+            />
+          </label>
+        </div>
+        <canvas
+          ref={canvasReference}
+          className="block border"
+          width={(720 * 16) / 9}
+          height={720}
+          onClick={() => {
+            void (async (): Promise<void> => {
+              if (
+                !document.pointerLockElement &&
+                canvasReference.current != undefined
+              ) {
+                await canvasReference.current.requestPointerLock({
+                  // unadjustedMovement: true,
+                });
+              }
+            })();
+          }}
+        ></canvas>
       </div>
-      <canvas
-        ref={canvasReference}
-        className="block border"
-        width={(720 * 16) / 9}
-        height={720}
-        onClick={() => {
-          void (async (): Promise<void> => {
-            if (
-              !document.pointerLockElement &&
-              canvasReference.current != undefined
-            ) {
-              await canvasReference.current.requestPointerLock({
-                // unadjustedMovement: true,
-              });
-            }
-          })();
+      <MainEditor
+        setSceneReference={(patch) => {
+          sceneReference.current = patch;
+          sceneStale.current = true;
+          sceneTriangles.current = format_triangles(
+            sceneObjectToTriangles(sceneReference.current),
+          );
         }}
-      ></canvas>
+      />
     </div>
   );
 };

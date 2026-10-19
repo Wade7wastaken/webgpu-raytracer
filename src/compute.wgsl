@@ -5,6 +5,7 @@ struct Uniforms {
     time: f32,
     rays_per_pixel: u32,
     max_bounces: u32,
+    num_tris: u32,
 }
 
 struct Triangle {
@@ -216,11 +217,9 @@ fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
     let spp = uniforms.rays_per_pixel;
     var pixel_color = vec3f(0.0, 0.0, 0.0);
 
-    let num_tris = arrayLength(&triangles);
-
     for (var i = 0u; i < spp; i += 1) {
         let r = get_ray(id.xy, &rseed);
-        let color = ray_color(r, num_tris, uniforms.max_bounces, &rseed);
+        let color = ray_color(r, uniforms.num_tris, uniforms.max_bounces, &rseed);
         pixel_color += color;
     }
     pixel_color /= f32(spp);
