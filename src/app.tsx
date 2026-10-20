@@ -318,9 +318,6 @@ const App: FC = () => {
             sceneObjectToTriangles(sceneReference.current),
           );
           if (triangleBuffer.size < sceneTriangles.current.byteLength) {
-            alert(
-              `recreating triangle buffer. old: ${triangleBuffer.size}, new: ${sceneTriangles.current.byteLength}`,
-            );
             triangleBuffer.destroy();
             triangleBuffer = device.createBuffer({
               size: Math.max(sceneTriangles.current.byteLength, 64),

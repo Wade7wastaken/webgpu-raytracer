@@ -95,6 +95,7 @@ export type ListSceneObject = BaseSceneObject & {
 };
 
 export type SceneObject = QuadSceneObject | ListSceneObject;
+export type SceneObjectNoId = Omit<QuadSceneObject, "id"> | Omit<ListSceneObject, "id">;
 
 // export const objectStore = create<{
 //   sceneObjects: Record<ObjectId, SceneObject>;

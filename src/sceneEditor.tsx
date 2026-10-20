@@ -1,97 +1,139 @@
-import { useEffect, useState, type FC } from "react";
+import {
+  useEffect,
+  useState,
+  type Dispatch,
+  type FC,
+  type SetStateAction,
+} from "react";
 import { Vector3 } from "three";
 
+import { Dropdown } from "./editorUi/dropdown";
 import { NumberInput } from "./editorUi/numberInput";
 import { VectorInput } from "./editorUi/vectorInput";
 
-import type { SceneObject, ListSceneObject, QuadSceneObject } from "./mesh";
+import type {
+  SceneObject,
+  ListSceneObject,
+  QuadSceneObject,
+  SceneObjectNoId,
+} from "./mesh";
 
 type MainProperties = {
   setSceneReference: (scene: SceneObject) => void;
 };
 
-export const MainEditor: FC<MainProperties> = ({ setSceneReference }) => {
-  const [state, setState] = useState<SceneObject>({
-    type: "list",
-    id: 0,
+const rootList: ListSceneObject = {
+  type: "list",
+  id: 0,
+  enabled: true,
+  children: [],
+};
+
+const startingObjects: SceneObjectNoId[] = [
+  {
+    type: "quad",
     enabled: true,
-    children: [
-      {
-        type: "quad",
-        id: 1,
-        enabled: true,
-        base: new Vector3(0, 0, -2),
-        u: new Vector3(1, 0, 0),
-        v: new Vector3(0, 1, 0),
-        materialIndex: 0,
-        colorIndex: 0,
-      },
-      {
-        type: "quad",
-        id: 2,
-        enabled: true,
-        base: new Vector3(0, 0, -2),
-        u: new Vector3(0, 0, 1),
-        v: new Vector3(1, 0, 0),
-        materialIndex: 0,
-        colorIndex: 0,
-      },
-      {
-        type: "quad",
-        id: 3,
-        enabled: true,
-        base: new Vector3(0, 1, -2),
-        u: new Vector3(0, 0, 1),
-        v: new Vector3(1, 0, 0),
-        materialIndex: 0,
-        colorIndex: 0,
-      },
-      {
-        type: "quad",
-        id: 4,
-        enabled: true,
-        base: new Vector3(0, 0, -2),
-        u: new Vector3(0, 1, 0),
-        v: new Vector3(0, 0, 1),
-        materialIndex: 0,
-        colorIndex: 1,
-      },
-      {
-        type: "quad",
-        id: 5,
-        enabled: true,
-        base: new Vector3(1, 0, -2),
-        u: new Vector3(0, 1, 0),
-        v: new Vector3(0, 0, 1),
-        materialIndex: 0,
-        colorIndex: 2,
-      },
-      {
-        type: "quad",
-        id: 6,
-        enabled: true,
-        base: new Vector3(0.3, 0.995, -1.7),
-        u: new Vector3(0.4, 0, 0),
-        v: new Vector3(0, 0, 0.4),
-        materialIndex: 1,
-        colorIndex: 0,
-      },
-    ],
-  });
+    base: new Vector3(0, 0, -2),
+    u: new Vector3(1, 0, 0),
+    v: new Vector3(0, 1, 0),
+    materialIndex: 0,
+    colorIndex: 0,
+  },
+  {
+    type: "quad",
+    enabled: true,
+    base: new Vector3(0, 0, -2),
+    u: new Vector3(0, 0, 1),
+    v: new Vector3(1, 0, 0),
+    materialIndex: 0,
+    colorIndex: 0,
+  },
+  {
+    type: "quad",
+    enabled: true,
+    base: new Vector3(0, 1, -2),
+    u: new Vector3(0, 0, 1),
+    v: new Vector3(1, 0, 0),
+    materialIndex: 0,
+    colorIndex: 0,
+  },
+  {
+    type: "quad",
+    enabled: true,
+    base: new Vector3(0, 0, -2),
+    u: new Vector3(0, 1, 0),
+    v: new Vector3(0, 0, 1),
+    materialIndex: 0,
+    colorIndex: 1,
+  },
+  {
+    type: "quad",
+    enabled: true,
+    base: new Vector3(1, 0, -2),
+    u: new Vector3(0, 1, 0),
+    v: new Vector3(0, 0, 1),
+    materialIndex: 0,
+    colorIndex: 2,
+  },
+  {
+    type: "quad",
+    enabled: true,
+    base: new Vector3(0.3, 0.995, -1.7),
+    u: new Vector3(0.4, 0, 0),
+    v: new Vector3(0, 0, 0.4),
+    materialIndex: 1,
+    colorIndex: 0,
+  },
+];
+
+const addObjectToList = (
+  list: ListSceneObject,
+  newObject: SceneObjectNoId,
+  nextId: number,
+  setNextId: Dispatch<SetStateAction<number>>,
+): ListSceneObject => {
+  const thisId = nextId;
+  setNextId((id) => id + 1);
+  return {
+    ...list,
+    children: [...list.children, { ...newObject, id: thisId }],
+  };
+};
+
+export const MainEditor: FC<MainProperties> = ({ setSceneReference }) => {
+  let startingId = 1;
+
+  const getInitialRootObject = (
+    rootList: ListSceneObject,
+    objects: SceneObjectNoId[],
+  ): ListSceneObject => {
+    for (const object of objects) {
+      rootList = addObjectToList(rootList, object, startingId, (update) => {
+        startingId = typeof update === "function" ? update(startingId) : update;
+      });
+    }
+    return rootList;
+  };
+
+  const [rootObject, setRootObject] = useState<ListSceneObject>(
+    getInitialRootObject(rootList, startingObjects),
+  );
+
+  const [nextId, setNextId] = useState(1); // 0 is reserved for the root list
 
   useEffect(() => {
-    setSceneReference(state);
-  }, [setSceneReference, state]);
+    setSceneReference(rootObject);
+  }, [setSceneReference, rootObject]);
 
   return (
-    <div>
-      <SceneEditor
-        sceneObject={state}
-        updateSceneObject={(patch) => {
-          setState(
-            patch ?? { type: "list", id: 0, children: [], enabled: true },
-          );
+    <div className="w-full">
+      <ListObjectEditor
+        listObject={rootObject}
+        updateListObject={(patch) => {
+          setRootObject(patch ?? rootList);
         }}
+        nextId={nextId}
+        setNextId={setNextId}
       />
     </div>
   );
@@ -100,11 +142,15 @@ export const MainEditor: FC<MainProperties> = ({ setSceneReference }) => {
 type Properties = {
   sceneObject: SceneObject;
   updateSceneObject: (patch: SceneObject | undefined) => void;
+  nextId: number;
+  setNextId: Dispatch<SetStateAction<number>>;
 };
 
 export const SceneEditor: FC<Properties> = ({
   sceneObject,
   updateSceneObject,
+  nextId,
+  setNextId,
 }) => {
   console.log(sceneObject);
   switch (sceneObject.type) {
@@ -115,6 +161,8 @@ export const SceneEditor: FC<Properties> = ({
           updateListObject={(patch) => {
             updateSceneObject(patch);
           }}
+          nextId={nextId}
+          setNextId={setNextId}
         />
       );
     }
@@ -133,16 +181,67 @@ export const SceneEditor: FC<Properties> = ({
 
 type ListProperties = {
   listObject: ListSceneObject;
-  updateListObject: (patch: ListSceneObject) => void;
+  updateListObject: (patch: ListSceneObject | undefined) => void;
+  nextId: number;
+  setNextId: Dispatch<SetStateAction<number>>;
 };
 
 const ListObjectEditor: FC<ListProperties> = ({
   listObject,
   updateListObject,
+  nextId,
+  setNextId,
 }) => {
   return (
     <div className="border bg-gray-200 rounded-xl m-2 p-2">
-      <p className="text-right">Object Group</p>
+      <div className="flex justify-end gap-2">
+        <p
+          className="hover:cursor-pointer"
+          onClick={() => {
+            updateListObject(undefined);
+          }}
+        >
+          X
+        </p>
+        <Dropdown
+          text="+"
+          options={["quad", "list"]}
+          onSelect={(option) => {
+            switch (option) {
+              case "quad": {
+                updateListObject(
+                  addObjectToList(
+                    listObject,
+                    {
+                      type: "quad",
+                      base: new Vector3(0, 0, 0),
+                      u: new Vector3(1, 0, 0),
+                      v: new Vector3(0, 1, 0),
+                      colorIndex: 0,
+                      materialIndex: 0,
+                      enabled: true,
+                    },
+                    nextId,
+                    setNextId,
+                  ),
+                );
+                break;
+              }
+              case "list": {
+                updateListObject(
+                  addObjectToList(
+                    listObject,
+                    { type: "list", children: [], enabled: true },
+                    nextId,
+                    setNextId,
+                  ),
+                );
+              }
+            }
+          }}
+        />
+        <p>Object Group</p>
+      </div>
       <div className="">
         {listObject.children.map((child, index) => (
           <SceneEditor
@@ -158,6 +257,8 @@ const ListObjectEditor: FC<ListProperties> = ({
                 ],
               });
             }}
+            nextId={nextId}
+            setNextId={setNextId}
           />
         ))}
       </div>

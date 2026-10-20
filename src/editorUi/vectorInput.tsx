@@ -12,21 +12,21 @@ type Properties = {
 export const VectorInput: FC<Properties> = ({ value, onChange }) => {
   return (
     <>
-      <p className="text-right mr-1">x</p>
+      <p className="text-right mr-1">X</p>
       <NumberInput
         value={value.x}
         onChange={(newX) => {
           onChange(new Vector3(newX, value.y, value.z));
         }}
       />
-      <p className="text-right mr-1">y</p>
+      <p className="text-right mr-1">Y</p>
       <NumberInput
         value={value.y}
         onChange={(newY) => {
           onChange(new Vector3(value.x, newY, value.z));
         }}
       />
-      <p className="text-right mr-1">z</p>
+      <p className="text-right mr-1">Z</p>
       <NumberInput
         value={value.z}
         onChange={(newZ) => {
