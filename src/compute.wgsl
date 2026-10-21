@@ -121,7 +121,7 @@ fn hit_triangle(r: ptr<function, Ray>, triIdx: u32, max_t: f32, outHitRec: ptr<f
     outHitRec.t = t;
     outHitRec.mat = tri.a.w;
     outHitRec.colorIdx = tri.edge1.w;
-    
+
     return true;
 }
 
@@ -138,13 +138,6 @@ fn randNormalVector(state: ptr<function, u32>) -> vec3<f32> {
     return vec3(x, y, z);
 }
 
-// fn randNormalVector(state: ptr<function, u32>) -> vec3f {
-//     let z = 1.0 - 2.0 * rand(state);
-//     let r = sqrt(max(0.0, 1.0 - z * z));
-//     let phi = 6.2831853 * rand(state);
-//     return vec3f(r * cos(phi), r * sin(phi), z);
-// }
-
 fn ray_color(initialRay: Ray, num_tris: u32, max_bounces: u32, state: ptr<function, u32>) -> vec3f {
     var ray = initialRay;
 
@@ -157,7 +150,7 @@ fn ray_color(initialRay: Ray, num_tris: u32, max_bounces: u32, state: ptr<functi
     for (var bounce = 0u; bounce < max_bounces; bounce += 1) {
 
         var max_t = far_away;
-    
+
         for (var triIdx = 0u; triIdx < num_tris; triIdx += 1) {
             if hit_triangle(&ray, triIdx, max_t, &hitRec) {
                 max_t = hitRec.t;
@@ -214,7 +207,7 @@ fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
     if (id.x >= texDims.x || id.y >= texDims.y) {
         return;
     }
-    
+
     var rseed = initRng(id.xy, bitcast<u32>(uniforms.time));
 
     let spp = uniforms.rays_per_pixel;
@@ -226,6 +219,6 @@ fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
         pixel_color += color;
     }
     pixel_color /= f32(spp);
-    
+
     textureStore(tex, id.xy, vec4f(clamp(pixel_color, vec3f(0.0, 0.0, 0.0), vec3f(1.0, 1.0, 1.0)), 1.0));
 }

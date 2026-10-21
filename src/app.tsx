@@ -3,7 +3,7 @@ import { Vector3 } from "three";
 import { makeShaderDataDefinitions, makeStructuredView } from "webgpu-utils";
 
 import computeShader from "./compute.wgsl?raw";
-import { Mesh, sceneObjectToTriangles } from "./mesh";
+import { sceneObjectToTriangles } from "./mesh";
 import { MainEditor } from "./sceneEditor";
 
 import type { SceneObject, Triangle } from "./mesh";
@@ -52,54 +52,6 @@ const format_triangles = (triangles: Triangle[]): Float32Array => {
   return new Float32Array(buffer);
 };
 
-const back_face = Mesh.quad(
-  new Vector3(0, 0, -2),
-  new Vector3(1, 0, 0),
-  new Vector3(0, 1, 0),
-);
-const bottom_face = Mesh.quad(
-  new Vector3(0, 0, -2),
-  new Vector3(0, 0, 1),
-  new Vector3(1, 0, 0),
-);
-const top_face = Mesh.quad(
-  new Vector3(0, 1, -2),
-  new Vector3(0, 0, 1),
-  new Vector3(1, 0, 0),
-);
-const left_face = Mesh.quad(
-  new Vector3(0, 0, -2),
-  new Vector3(0, 1, 0),
-  new Vector3(0, 0, 1),
-  0,
-  1,
-);
-const right_face = Mesh.quad(
-  new Vector3(1, 0, -2),
-  new Vector3(0, 1, 0),
-  new Vector3(0, 0, 1),
-  0,
-  2,
-);
-const light = Mesh.quad(
-  new Vector3(0.3, 0.995, -1.7),
-  new Vector3(0.4, 0, 0),
-  new Vector3(0, 0, 0.4),
-  1,
-  0,
-);
-
-const scene = new Mesh(
-  back_face,
-  bottom_face,
-  top_face,
-  left_face,
-  right_face,
-  light,
-);
-
-// const triangleData = format_triangles(scene.triangles);
-
 const App: FC = () => {
   const canvasReference = useRef<HTMLCanvasElement>(null);
   const camera_pos = useRef<Vector3>(new Vector3(0.5, 0.5, 0.4));
@@ -119,8 +71,6 @@ const App: FC = () => {
 
   const rays_per_pixel = useRef(10);
   const max_bounces = useRef(100);
-
-  // const sceneObjects = objectStore(state => state.sceneObjects);
 
   const sceneReference = useRef<SceneObject>({
     type: "list",

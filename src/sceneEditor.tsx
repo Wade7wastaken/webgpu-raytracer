@@ -8,7 +8,6 @@ import {
 import { Vector3 } from "three";
 
 import { Dropdown } from "./editorUi/dropdown";
-import { NumberInput } from "./editorUi/numberInput";
 import { VectorInput } from "./editorUi/vectorInput";
 
 import type {
