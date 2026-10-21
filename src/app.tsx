@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FC } from "react";
 import { Vector3 } from "three";
 import { makeShaderDataDefinitions, makeStructuredView } from "webgpu-utils";
 
-import computeShader from "./compute.wgsl?raw";
+import { processShader, type MaterialList } from "./materials";
 import { sceneObjectToTriangles } from "./mesh";
 import { MainEditor } from "./sceneEditor";
 
@@ -72,6 +72,17 @@ const App: FC = () => {
   const rays_per_pixel = useRef(10);
   const max_bounces = useRef(100);
 
+  const defaultMaterials = { materials: [] };
+  const defaultPresentationFormat = "bgra8unorm";
+  const materialsReference = useRef<MaterialList>(defaultMaterials);
+  const presentationFormatReference = useRef<GPUTextureFormat>(
+    defaultPresentationFormat,
+  );
+  const shaderSourceReference = useRef<string>(
+    processShader(defaultMaterials, defaultPresentationFormat),
+  );
+  const shaderStaleReference = useRef(false);
+
   const sceneReference = useRef<SceneObject>({
     type: "list",
     id: 0,
@@ -127,33 +138,32 @@ const App: FC = () => {
         return;
       }
 
-      const presentationFormat = hasBGRA8unormStorage
+      presentationFormatReference.current = hasBGRA8unormStorage
         ? navigator.gpu.getPreferredCanvasFormat()
         : "rgba8unorm";
 
       context.configure({
         device,
-        format: presentationFormat,
+        format: presentationFormatReference.current,
         // This is what's required to be able to write to a texture from a compute shader
         usage:
           GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
       });
 
-      const processedComputeShader = computeShader.replaceAll(
-        "${presentationFormat}",
-        () => presentationFormat,
-      );
-
-      const module = device.createShaderModule({
-        code: processedComputeShader,
+      let module = device.createShaderModule({
+        code: shaderSourceReference.current,
       });
 
       const shaderDefinitions = makeShaderDataDefinitions(
-        processedComputeShader,
+        shaderSourceReference.current,
       );
-      const uniformsData = makeStructuredView(
-        shaderDefinitions.uniforms.uniforms,
-      );
+      const uniformDefinitions = shaderDefinitions.uniforms.uniforms;
+      if (uniformDefinitions === undefined) {
+        fail("no uniform type definitions");
+        return;
+      }
+
+      const uniformsData = makeStructuredView(uniformDefinitions);
 
       const uniformBuffer = device.createBuffer({
         size: uniformsData.arrayBuffer.byteLength,
@@ -167,7 +177,7 @@ const App: FC = () => {
 
       device.queue.writeBuffer(triangleBuffer, 0, sceneTriangles.current);
 
-      const pipeline = device.createComputePipeline({
+      let pipeline = device.createComputePipeline({
         label: "pipeline",
         layout: "auto",
         compute: {
@@ -176,7 +186,7 @@ const App: FC = () => {
         },
       });
 
-      const bindGroupLayout = pipeline.getBindGroupLayout(0);
+      let bindGroupLayout = pipeline.getBindGroupLayout(0);
 
       const setUniforms = (
         canvasWidth: number,
@@ -327,6 +337,30 @@ const App: FC = () => {
           device,
         );
         device.queue.writeBuffer(uniformBuffer, 0, uniformsData.arrayBuffer);
+
+        if (shaderStaleReference.current) {
+          shaderSourceReference.current = processShader(
+            materialsReference.current,
+            presentationFormatReference.current,
+          );
+
+          module = device.createShaderModule({
+            code: shaderSourceReference.current,
+          });
+
+          pipeline = device.createComputePipeline({
+            label: "pipeline",
+            layout: "auto",
+            compute: {
+              module,
+              entryPoint: "cs",
+            },
+          });
+
+          bindGroupLayout = pipeline.getBindGroupLayout(0);
+
+          shaderStaleReference.current = false;
+        }
 
         const bindGroup = device.createBindGroup({
           layout: bindGroupLayout,
@@ -528,6 +562,14 @@ const App: FC = () => {
           sceneStale.current = true;
           sceneTriangles.current = format_triangles(
             sceneObjectToTriangles(sceneReference.current),
+          );
+        }}
+        setMaterialsReference={(patch) => {
+          materialsReference.current = patch;
+          shaderStaleReference.current = true;
+          shaderSourceReference.current = processShader(
+            materialsReference.current,
+            presentationFormatReference.current,
           );
         }}
       />

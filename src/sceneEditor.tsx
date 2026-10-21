@@ -10,6 +10,7 @@ import { Vector3 } from "three";
 import { Dropdown } from "./editorUi/dropdown";
 import { VectorInput } from "./editorUi/vectorInput";
 
+import type { MaterialList } from "./materials";
 import type {
   SceneObject,
   ListSceneObject,
@@ -19,6 +20,7 @@ import type {
 
 type MainProperties = {
   setSceneReference: (scene: SceneObject) => void;
+  setMaterialsReference: (materials: MaterialList) => void;
 };
 
 const rootList: ListSceneObject = {
@@ -99,7 +101,10 @@ const addObjectToList = (
   };
 };
 
-export const MainEditor: FC<MainProperties> = ({ setSceneReference }) => {
+export const MainEditor: FC<MainProperties> = ({
+  setSceneReference,
+  setMaterialsReference,
+}) => {
   let startingId = 1;
 
   const getInitialRootObject = (
@@ -118,11 +123,36 @@ export const MainEditor: FC<MainProperties> = ({ setSceneReference }) => {
     getInitialRootObject(rootList, startingObjects),
   );
 
-  const [nextId, setNextId] = useState(1); // 0 is reserved for the root list
+  const [nextId, setNextId] = useState(startingId); // 0 is reserved for the root list
 
   useEffect(() => {
     setSceneReference(rootObject);
   }, [setSceneReference, rootObject]);
+
+  const [materials, _setMaterials] = useState<MaterialList>({
+    materials: [
+      {
+        name: "lambertian",
+        source: `
+var scatter_dir = hitRec.n + randNormalVector(state);
+if (abs(scatter_dir.x) < 1e-6 && abs(scatter_dir.y) < 1e-6 && abs(scatter_dir.z) < 1e-6) {
+    scatter_dir = hitRec.n;
+}
+let colors = array(vec3f(0.73, 0.73, 0.73), vec3f(0.65, 0.05, 0.05), vec3f(0.12, 0.45, 0.15));
+rayColor *= colors[u32(hitRec.colorIdx)];
+ray = Ray(hitRec.p, scatter_dir);
+            `,
+      },
+      {
+        name: "light",
+        source: `return rayColor * vec3f(1.0, 193.0 / 255.0, 104.0 / 255.0) * 15f;`,
+      },
+    ],
+  });
+
+  useEffect(() => {
+    setMaterialsReference(materials);
+  }, [setMaterialsReference, materials]);
 
   return (
     <div className="w-full">

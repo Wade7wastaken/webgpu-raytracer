@@ -159,28 +159,12 @@ fn ray_color(initialRay: Ray, num_tris: u32, max_bounces: u32, state: ptr<functi
 
         // we found an intersection closer than `far_away`
         if max_t < far_away {
-            switch u32(hitRec.mat) {
-                case 0: {
-                    var scatter_dir = hitRec.n + randNormalVector(state);
-                    if (abs(scatter_dir.x) < 1e-6 && abs(scatter_dir.y) < 1e-6 && abs(scatter_dir.z) < 1e-6) {
-                        scatter_dir = hitRec.n;
-                    }
-                    let colors = array(vec3f(0.73, 0.73, 0.73), vec3f(0.65, 0.05, 0.05), vec3f(0.12, 0.45, 0.15));
-                    rayColor *= colors[u32(hitRec.colorIdx)];
-                    ray = Ray(hitRec.p, scatter_dir);
-                }
-                case 1: {
-                    return rayColor * vec3f(1.0, 193.0 / 255.0, 104.0 / 255.0) * 15f;
-                }
-                default {
-                    return vec3f(1.0, 0.0, 1.0);
-                }
-            }
+            //${materials}
         } else {
-            return rayColor * vec3f(0.1, 0.1, 0.1);
-            // let unit_dir = normalize(ray.dir);
-            // let a = 0.5 * (unit_dir.y + 1.0);
-            // return rayColor * ((1.0-a)*vec3f(1.0, 1.0, 1.0) + a*vec3f(0.3, 0.7, 1.0));
+            // return rayColor * vec3f(0.1, 0.1, 0.1);
+            let unit_dir = normalize(ray.dir);
+            let a = 0.5 * (unit_dir.y + 1.0);
+            return rayColor * ((1.0-a)*vec3f(1.0, 1.0, 1.0) + a*vec3f(0.3, 0.7, 1.0));
         }
     }
 
