@@ -4,10 +4,12 @@ import { makeShaderDataDefinitions, makeStructuredView } from "webgpu-utils";
 
 import { MaterialEditor } from "./materialEditor";
 import { processShader, type MaterialList } from "./materials";
-import { sceneObjectToTriangles } from "./mesh";
-import { MainEditor } from "./sceneEditor";
-
-import type { SceneObject, Triangle } from "./mesh";
+import { MainEditor } from "./sceneEditor/sceneEditor";
+import {
+  sceneObjectToTriangles,
+  type SceneObject,
+  type Triangle,
+} from "./sceneEditor/utilities";
 
 const fail = (message: string): void => {
   alert(message);

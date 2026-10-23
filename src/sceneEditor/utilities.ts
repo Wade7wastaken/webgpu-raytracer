@@ -1,4 +1,19 @@
+import type { Dispatch, SetStateAction } from "react";
 import type { Vector3 } from "three";
+
+export const addObjectToList = (
+  list: ListSceneObject,
+  newObject: SceneObjectNoId,
+  nextId: number,
+  setNextId: Dispatch<SetStateAction<number>>,
+): ListSceneObject => {
+  const thisId = nextId;
+  setNextId((id) => id + 1);
+  return {
+    ...list,
+    children: [...list.children, { ...newObject, id: thisId }],
+  };
+};
 
 export type Triangle = {
   vertices: [Vector3, Vector3, Vector3];
