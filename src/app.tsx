@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FC } from "react";
 import { Vector3 } from "three";
 import { makeShaderDataDefinitions, makeStructuredView } from "webgpu-utils";
 
+import { MaterialEditor } from "./materialEditor";
 import { processShader, type MaterialList } from "./materials";
 import { sceneObjectToTriangles } from "./mesh";
 import { MainEditor } from "./sceneEditor";
@@ -424,7 +425,7 @@ const App: FC = () => {
           break;
         }
         case " ": {
-          event.preventDefault();
+          // event.preventDefault();
           keys.current.Space = true;
           break;
         }
@@ -490,80 +491,84 @@ const App: FC = () => {
   }, []);
 
   return (
-    <div className="flex p-4 gap-8">
-      <div>
-        <div className="flex gap-2 mb-2 items-center-safe">
-          <button
-            className="bg-gray-500 px-2 py-1 rounded hover:cursor-pointer"
-            onClick={() => {
-              runningReference.current = true;
-            }}
-          >
-            Start
-          </button>
-          <button
-            className="bg-gray-500 px-2 py-1 rounded hover:cursor-pointer"
-            onClick={() => {
-              runningReference.current = false;
-            }}
-          >
-            Stop
-          </button>
-          <p>FPS: {fps.toFixed(2)}</p>
-          <label className="ml-16 flex gap-1">
-            Rays per pixel:
-            <input
-              type="range"
-              min={1}
-              max={100}
-              step={1}
-              defaultValue={10}
-              onChange={(event) => {
-                rays_per_pixel.current = Number.parseInt(event.target.value);
+    <div className="p-4">
+      <div className="flex gap-8">
+        <div>
+          <div className="flex gap-2 mb-2 items-center-safe">
+            <button
+              className="bg-gray-500 px-2 py-1 rounded hover:cursor-pointer"
+              onClick={() => {
+                runningReference.current = true;
               }}
-            />
-          </label>
-          <label className="flex gap-1">
-            Max ray bounces:
-            <input
-              type="range"
-              min={1}
-              max={100}
-              step={1}
-              defaultValue={10}
-              onChange={(event) => {
-                max_bounces.current = Number.parseInt(event.target.value);
+            >
+              Start
+            </button>
+            <button
+              className="bg-gray-500 px-2 py-1 rounded hover:cursor-pointer"
+              onClick={() => {
+                runningReference.current = false;
               }}
-            />
-          </label>
+            >
+              Stop
+            </button>
+            <p>FPS: {fps.toFixed(2)}</p>
+            <label className="ml-16 flex gap-1">
+              Rays per pixel:
+              <input
+                type="range"
+                min={1}
+                max={100}
+                step={1}
+                defaultValue={10}
+                onChange={(event) => {
+                  rays_per_pixel.current = Number.parseInt(event.target.value);
+                }}
+              />
+            </label>
+            <label className="flex gap-1">
+              Max ray bounces:
+              <input
+                type="range"
+                min={1}
+                max={100}
+                step={1}
+                defaultValue={10}
+                onChange={(event) => {
+                  max_bounces.current = Number.parseInt(event.target.value);
+                }}
+              />
+            </label>
+          </div>
+          <canvas
+            ref={canvasReference}
+            className="block border"
+            width={(720 * 16) / 9}
+            height={720}
+            onClick={() => {
+              void (async (): Promise<void> => {
+                if (
+                  !document.pointerLockElement &&
+                  canvasReference.current != undefined
+                ) {
+                  await canvasReference.current.requestPointerLock({
+                    // unadjustedMovement: true,
+                  });
+                }
+              })();
+            }}
+          ></canvas>
         </div>
-        <canvas
-          ref={canvasReference}
-          className="block border"
-          width={(720 * 16) / 9}
-          height={720}
-          onClick={() => {
-            void (async (): Promise<void> => {
-              if (
-                !document.pointerLockElement &&
-                canvasReference.current != undefined
-              ) {
-                await canvasReference.current.requestPointerLock({
-                  // unadjustedMovement: true,
-                });
-              }
-            })();
+        <MainEditor
+          setSceneReference={(patch) => {
+            sceneReference.current = patch;
+            sceneStale.current = true;
+            sceneTriangles.current = format_triangles(
+              sceneObjectToTriangles(sceneReference.current),
+            );
           }}
-        ></canvas>
+        />
       </div>
-      <MainEditor
-        setSceneReference={(patch) => {
-          sceneReference.current = patch;
-          sceneStale.current = true;
-          sceneTriangles.current = format_triangles(
-            sceneObjectToTriangles(sceneReference.current),
-          );
-        }}
+      <MaterialEditor
         setMaterialsReference={(patch) => {
           materialsReference.current = patch;
           shaderStaleReference.current = true;
