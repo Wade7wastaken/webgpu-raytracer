@@ -68,10 +68,10 @@ const App: FC = () => {
   });
 
   const [fps, setFps] = useState(0);
-  const runningReference = useRef(false);
+  const runningReference = useRef(true);
 
   const rays_per_pixel = useRef(10);
-  const max_bounces = useRef(100);
+  const max_bounces = useRef(10);
 
   const defaultMaterials = { materials: [] };
   const defaultPresentationFormat = "bgra8unorm";
@@ -92,6 +92,8 @@ const App: FC = () => {
   }); // main source of truth for the scene
   const sceneTriangles = useRef(format_triangles([])); // updated in setUniforms when sceneReference changes
   const sceneStale = useRef(false); // true when sceneReference is stale
+
+  const [shaderError, setShaderError] = useState("");
 
   useEffect(() => {
     let isCanceled = false;
@@ -340,27 +342,52 @@ const App: FC = () => {
         device.queue.writeBuffer(uniformBuffer, 0, uniformsData.arrayBuffer);
 
         if (shaderStaleReference.current) {
-          shaderSourceReference.current = processShader(
-            materialsReference.current,
-            presentationFormatReference.current,
-          );
-
-          module = device.createShaderModule({
-            code: shaderSourceReference.current,
-          });
-
-          pipeline = device.createComputePipeline({
-            label: "pipeline",
-            layout: "auto",
-            compute: {
-              module,
-              entryPoint: "cs",
-            },
-          });
-
-          bindGroupLayout = pipeline.getBindGroupLayout(0);
-
           shaderStaleReference.current = false;
+
+          void (async (): Promise<void> => {
+            shaderSourceReference.current = processShader(
+              materialsReference.current,
+              presentationFormatReference.current,
+            );
+
+            device.pushErrorScope("validation");
+            const newModule = device.createShaderModule({
+              code: shaderSourceReference.current,
+            });
+
+            const error = await device.popErrorScope();
+
+            if (error == undefined) {
+              setShaderError("Shader compiled correctly");
+              module = newModule;
+              pipeline = device.createComputePipeline({
+                label: "pipeline",
+                layout: "auto",
+                compute: {
+                  module,
+                  entryPoint: "cs",
+                },
+              });
+
+              bindGroupLayout = pipeline.getBindGroupLayout(0);
+            } else {
+              const info = await newModule.getCompilationInfo();
+
+              // Sort the messages by line numbers in reverse order
+              // so that as we insert the messages they won't affect
+              // the line numbers.
+              const msgs = info.messages.toSorted(
+                (a, b) => b.lineNum - a.lineNum,
+              );
+
+              setShaderError(
+                msgs
+                  .map((m) => m.message)
+                  .filter((m) => m.length > 0)
+                  .join("\n").trim(),
+              );
+            }
+          })();
         }
 
         const bindGroup = device.createBindGroup({
@@ -425,7 +452,9 @@ const App: FC = () => {
           break;
         }
         case " ": {
-          // event.preventDefault();
+          if (document.pointerLockElement != undefined) {
+            event.preventDefault();
+          }
           keys.current.Space = true;
           break;
         }
@@ -568,16 +597,19 @@ const App: FC = () => {
           }}
         />
       </div>
-      <MaterialEditor
-        setMaterialsReference={(patch) => {
-          materialsReference.current = patch;
-          shaderStaleReference.current = true;
-          shaderSourceReference.current = processShader(
-            materialsReference.current,
-            presentationFormatReference.current,
-          );
-        }}
-      />
+      <div className="flex">
+        <MaterialEditor
+          setMaterialsReference={(patch) => {
+            materialsReference.current = patch;
+            shaderStaleReference.current = true;
+            shaderSourceReference.current = processShader(
+              materialsReference.current,
+              presentationFormatReference.current,
+            );
+          }}
+        />
+        <pre className="w-1/4">{shaderError}</pre>
+      </div>
     </div>
   );
 };

@@ -43,13 +43,10 @@ ray = Ray(hitRec.p, scatter_dir);
 
   const editorReference = useRef<editor.IStandaloneCodeEditor>(undefined);
 
-  useEffect(() => {
-    const newSource = materials.materials.find((m) => m.name === selectedMaterial)?.source ?? "";
-    editorReference.current?.setValue(newSource);
-  }, [selectedMaterial, materials.materials])
+  const justSwitchedReference = useRef(false);
 
   return (
-    <div className="flex gap-4">
+    <div className="flex gap-4 grow">
       <div className="w-1/6">
         {materials.materials.map((mat) => {
           return (
@@ -57,6 +54,8 @@ ray = Ray(hitRec.p, scatter_dir);
               key={mat.name}
               onClick={() => {
                 setSelectedMaterial(mat.name);
+                justSwitchedReference.current = true;
+                editorReference.current?.setValue(mat.source);
               }}
             >
               {mat.name}
@@ -75,6 +74,10 @@ ray = Ray(hitRec.p, scatter_dir);
           editorReference.current = editor;
         }}
         onChange={(value) => {
+          if (justSwitchedReference.current) {
+            justSwitchedReference.current = false;
+            return;
+          }
           if (typeof value !== "string") {
             return;
           }
