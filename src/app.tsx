@@ -22,7 +22,7 @@ const fail = (message: string): void => {
   alert(message);
 };
 
-const format_triangle = ({
+const formatTriangle = ({
   vertices,
   materialIndex,
   colorIndex,
@@ -32,7 +32,7 @@ const format_triangle = ({
   const c = vertices[2];
   const edge1 = b.clone().sub(a);
   const edge2 = c.clone().sub(a);
-  const outward_normal = edge1.clone().cross(edge2).normalize();
+  const outwardNormal = edge1.clone().cross(edge2).normalize();
   return [
     ...a,
     materialIndex,
@@ -40,25 +40,25 @@ const format_triangle = ({
     colorIndex,
     ...edge2,
     0,
-    ...outward_normal,
+    ...outwardNormal,
     0,
   ];
 };
 
-const format_triangles = (triangles: Triangle[]): Float32Array => {
+const formatTriangles = (triangles: Triangle[]): Float32Array => {
   const buffer = [];
   for (const triangle of triangles) {
-    buffer.push(...format_triangle(triangle));
+    buffer.push(...formatTriangle(triangle));
   }
   return new Float32Array(buffer);
 };
 
 const App: FC = () => {
   const canvasReference = useRef<HTMLCanvasElement>(null);
-  const camera_pos = useRef<Vector3>(new Vector3(0.5, 0.5, 0.4));
-  const yaw = useRef(Math.PI / 2);
-  const pitch = useRef(0);
-  const keys = useRef<Keys>({
+  const cameraPositionReference = useRef<Vector3>(new Vector3(0.5, 0.5, 0.4));
+  const yawReference = useRef(Math.PI / 2);
+  const pitchReference = useRef(0);
+  const keysReference = useRef<Keys>({
     W: false,
     A: false,
     S: false,
@@ -68,10 +68,10 @@ const App: FC = () => {
   });
 
   const [fps, setFps] = useState(0);
-  const runningReference = useRef(true);
+  const isRunningReference = useRef(false);
 
-  const rays_per_pixel = useRef(10);
-  const max_bounces = useRef(10);
+  const raysPerPixel = useRef(10);
+  const maxBounces = useRef(10);
 
   const defaultMaterials = { materials: [] };
   const defaultPresentationFormat = "bgra8unorm";
@@ -90,7 +90,7 @@ const App: FC = () => {
     children: [],
     enabled: true,
   }); // main source of truth for the scene
-  const sceneTriangles = useRef(format_triangles([])); // updated in setUniforms when sceneReference changes
+  const sceneTriangles = useRef(formatTriangles([])); // updated in setUniforms when sceneReference changes
   const sceneStale = useRef(false); // true when sceneReference is stale
 
   const [shaderError, setShaderError] = useState("");
@@ -117,15 +117,15 @@ const App: FC = () => {
 
       const hasBGRA8unormStorage = adapter.features.has("bgra8unorm-storage");
 
-      const new_device = await adapter.requestDevice({
+      const newDevice = await adapter.requestDevice({
         requiredFeatures: hasBGRA8unormStorage ? ["bgra8unorm-storage"] : [],
       });
 
       if (isCanceled) {
-        new_device.destroy();
+        newDevice.destroy();
         return;
       }
-      device = new_device;
+      device = newDevice;
 
       // ---NO ASYNC AFTER CANCEL---
 
@@ -199,30 +199,30 @@ const App: FC = () => {
         device: GPUDevice,
       ): void => {
         const fov = 40;
-        const focal_length = 1;
+        const focalLength = 1;
         const vup = new Vector3(0, 1, 0);
 
         const theta = (fov / 180) * Math.PI;
         const h = Math.tan(theta / 2);
-        const viewport_height = 2 * h * focal_length;
-        const viewport_width = viewport_height * (canvasWidth / canvasHeight);
+        const viewportHeight = 2 * h * focalLength;
+        const viewportWidth = viewportHeight * (canvasWidth / canvasHeight);
 
-        const direction_x = Math.cos(yaw.current) * Math.cos(pitch.current);
-        const direction_y = Math.sin(pitch.current);
-        const direction_z = Math.sin(yaw.current) * Math.cos(pitch.current);
+        const directionX = Math.cos(yawReference.current) * Math.cos(pitchReference.current);
+        const directionY = Math.sin(pitchReference.current);
+        const directionZ = Math.sin(yawReference.current) * Math.cos(pitchReference.current);
 
         const w = new Vector3(
-          direction_x,
-          direction_y,
-          direction_z,
+          directionX,
+          directionY,
+          directionZ,
         ).normalize();
         const u = vup.clone().cross(w).normalize();
         const v = w.clone().cross(u);
 
         const camSpeed = 0.001 * deltaTime;
 
-        if (keys.current.W) {
-          camera_pos.current.add(
+        if (keysReference.current.W) {
+          cameraPositionReference.current.add(
             w
               .clone()
               .cross(vup)
@@ -231,8 +231,8 @@ const App: FC = () => {
               .multiplyScalar(camSpeed),
           );
         }
-        if (keys.current.S) {
-          camera_pos.current.sub(
+        if (keysReference.current.S) {
+          cameraPositionReference.current.sub(
             w
               .clone()
               .cross(vup)
@@ -241,43 +241,43 @@ const App: FC = () => {
               .multiplyScalar(camSpeed),
           );
         }
-        if (keys.current.A) {
-          camera_pos.current.add(
+        if (keysReference.current.A) {
+          cameraPositionReference.current.add(
             w.clone().cross(vup).normalize().multiplyScalar(camSpeed),
           );
         }
-        if (keys.current.D) {
-          camera_pos.current.sub(
+        if (keysReference.current.D) {
+          cameraPositionReference.current.sub(
             w.clone().cross(vup).normalize().multiplyScalar(camSpeed),
           );
         }
-        if (keys.current.Space) {
-          camera_pos.current.add(vup.multiplyScalar(camSpeed));
+        if (keysReference.current.Space) {
+          cameraPositionReference.current.add(vup.multiplyScalar(camSpeed));
         }
-        if (keys.current.Shift) {
-          camera_pos.current.sub(vup.multiplyScalar(camSpeed));
+        if (keysReference.current.Shift) {
+          cameraPositionReference.current.sub(vup.multiplyScalar(camSpeed));
         }
 
-        const camera_center = camera_pos.current.clone();
+        const camera_center = cameraPositionReference.current.clone();
 
-        const viewport_u = u.clone().multiplyScalar(viewport_width);
-        const viewport_v = v.negate().clone().multiplyScalar(viewport_height);
+        const viewportU = u.clone().multiplyScalar(viewportWidth);
+        const viewportV = v.negate().clone().multiplyScalar(viewportHeight);
 
-        const pixel_delta_u = viewport_u.clone().divideScalar(canvasWidth);
-        const pixel_delta_v = viewport_v.clone().divideScalar(canvasHeight);
+        const pixelDeltaU = viewportU.clone().divideScalar(canvasWidth);
+        const pixelDeltaV = viewportV.clone().divideScalar(canvasHeight);
 
-        const viewport_upper_left = camera_center
+        const viewportUpperLeft = camera_center
           .clone()
-          .sub(w.clone().multiplyScalar(focal_length))
-          .sub(viewport_u.clone().divideScalar(2))
-          .sub(viewport_v.clone().divideScalar(2));
+          .sub(w.clone().multiplyScalar(focalLength))
+          .sub(viewportU.clone().divideScalar(2))
+          .sub(viewportV.clone().divideScalar(2));
 
-        const pixel00_loc = viewport_upper_left
+        const pixel00Location = viewportUpperLeft
           .clone()
-          .add(pixel_delta_u.clone().add(pixel_delta_v).multiplyScalar(0.5));
+          .add(pixelDeltaU.clone().add(pixelDeltaV).multiplyScalar(0.5));
 
         if (sceneStale.current) {
-          sceneTriangles.current = format_triangles(
+          sceneTriangles.current = formatTriangles(
             sceneObjectToTriangles(sceneReference.current),
           );
           if (triangleBuffer.size < sceneTriangles.current.byteLength) {
@@ -292,12 +292,12 @@ const App: FC = () => {
         }
 
         uniformsData.set({
-          pixel00_loc: pixel00_loc.toArray(),
-          pixel_delta: [...pixel_delta_u, 0, ...pixel_delta_v, 0],
+          pixel00_loc: pixel00Location.toArray(),
+          pixel_delta: [...pixelDeltaU, 0, ...pixelDeltaV, 0],
           camera_center: camera_center.toArray(),
           time,
-          rays_per_pixel: rays_per_pixel.current,
-          max_bounces: max_bounces.current,
+          rays_per_pixel: raysPerPixel.current,
+          max_bounces: maxBounces.current,
           num_tris: sceneObjectToTriangles(sceneReference.current).length, // FIXME
         });
       };
@@ -314,7 +314,7 @@ const App: FC = () => {
           return;
         }
 
-        if (!runningReference.current) {
+        if (!isRunningReference.current) {
           rafId = requestAnimationFrame(render);
           return;
         }
@@ -436,30 +436,30 @@ const App: FC = () => {
     const onKeyDown = (event: KeyboardEvent): void => {
       switch (event.key.toLowerCase()) {
         case "w": {
-          keys.current.W = true;
+          keysReference.current.W = true;
           break;
         }
         case "s": {
-          keys.current.S = true;
+          keysReference.current.S = true;
           break;
         }
         case "a": {
-          keys.current.A = true;
+          keysReference.current.A = true;
           break;
         }
         case "d": {
-          keys.current.D = true;
+          keysReference.current.D = true;
           break;
         }
         case " ": {
           if (document.pointerLockElement != undefined) {
             event.preventDefault();
           }
-          keys.current.Space = true;
+          keysReference.current.Space = true;
           break;
         }
         case "shift": {
-          keys.current.Shift = true;
+          keysReference.current.Shift = true;
           break;
         }
       }
@@ -468,27 +468,27 @@ const App: FC = () => {
     const onKeyUp = (event: KeyboardEvent): void => {
       switch (event.key.toLowerCase()) {
         case "w": {
-          keys.current.W = false;
+          keysReference.current.W = false;
           break;
         }
         case "s": {
-          keys.current.S = false;
+          keysReference.current.S = false;
           break;
         }
         case "a": {
-          keys.current.A = false;
+          keysReference.current.A = false;
           break;
         }
         case "d": {
-          keys.current.D = false;
+          keysReference.current.D = false;
           break;
         }
         case " ": {
-          keys.current.Space = false;
+          keysReference.current.Space = false;
           break;
         }
         case "shift": {
-          keys.current.Shift = false;
+          keysReference.current.Shift = false;
           break;
         }
       }
@@ -497,8 +497,8 @@ const App: FC = () => {
     const sensitivity = 0.001;
 
     const updateMousePosition = (event: MouseEvent): void => {
-      yaw.current += event.movementX * sensitivity;
-      pitch.current += event.movementY * sensitivity;
+      yawReference.current += event.movementX * sensitivity;
+      pitchReference.current += event.movementY * sensitivity;
     };
 
     const onLockChangeAlert = (): void => {
@@ -527,7 +527,7 @@ const App: FC = () => {
             <button
               className="bg-gray-500 px-2 py-1 rounded hover:cursor-pointer"
               onClick={() => {
-                runningReference.current = true;
+                isRunningReference.current = true;
               }}
             >
               Start
@@ -535,7 +535,7 @@ const App: FC = () => {
             <button
               className="bg-gray-500 px-2 py-1 rounded hover:cursor-pointer"
               onClick={() => {
-                runningReference.current = false;
+                isRunningReference.current = false;
               }}
             >
               Stop
@@ -550,7 +550,7 @@ const App: FC = () => {
                 step={1}
                 defaultValue={10}
                 onChange={(event) => {
-                  rays_per_pixel.current = Number.parseInt(event.target.value);
+                  raysPerPixel.current = Number.parseInt(event.target.value);
                 }}
               />
             </label>
@@ -563,7 +563,7 @@ const App: FC = () => {
                 step={1}
                 defaultValue={10}
                 onChange={(event) => {
-                  max_bounces.current = Number.parseInt(event.target.value);
+                  maxBounces.current = Number.parseInt(event.target.value);
                 }}
               />
             </label>
@@ -591,7 +591,7 @@ const App: FC = () => {
           setSceneReference={(patch) => {
             sceneReference.current = patch;
             sceneStale.current = true;
-            sceneTriangles.current = format_triangles(
+            sceneTriangles.current = formatTriangles(
               sceneObjectToTriangles(sceneReference.current),
             );
           }}
