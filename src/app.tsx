@@ -9,15 +9,6 @@ import { MainEditor } from "./sceneEditor";
 
 import type { SceneObject, Triangle } from "./mesh";
 
-type Keys = {
-  W: boolean;
-  A: boolean;
-  S: boolean;
-  D: boolean;
-  Space: boolean;
-  Shift: boolean;
-};
-
 const fail = (message: string): void => {
   alert(message);
 };
@@ -54,6 +45,14 @@ const formatTriangles = (triangles: Triangle[]): Float32Array => {
 };
 
 const App: FC = () => {
+  type Keys = {
+    W: boolean;
+    A: boolean;
+    S: boolean;
+    D: boolean;
+    Space: boolean;
+    Shift: boolean;
+  };
   const canvasReference = useRef<HTMLCanvasElement>(null);
   const cameraPositionReference = useRef<Vector3>(new Vector3(0.5, 0.5, 0.4));
   const yawReference = useRef(Math.PI / 2);
@@ -207,15 +206,13 @@ const App: FC = () => {
         const viewportHeight = 2 * h * focalLength;
         const viewportWidth = viewportHeight * (canvasWidth / canvasHeight);
 
-        const directionX = Math.cos(yawReference.current) * Math.cos(pitchReference.current);
+        const directionX =
+          Math.cos(yawReference.current) * Math.cos(pitchReference.current);
         const directionY = Math.sin(pitchReference.current);
-        const directionZ = Math.sin(yawReference.current) * Math.cos(pitchReference.current);
+        const directionZ =
+          Math.sin(yawReference.current) * Math.cos(pitchReference.current);
 
-        const w = new Vector3(
-          directionX,
-          directionY,
-          directionZ,
-        ).normalize();
+        const w = new Vector3(directionX, directionY, directionZ).normalize();
         const u = vup.clone().cross(w).normalize();
         const v = w.clone().cross(u);
 
@@ -384,7 +381,8 @@ const App: FC = () => {
                 msgs
                   .map((m) => m.message)
                   .filter((m) => m.length > 0)
-                  .join("\n").trim(),
+                  .join("\n")
+                  .trim(),
               );
             }
           })();

@@ -36,10 +36,11 @@ export const newMaterial = (
   if (first === undefined || last === undefined) {
     return "Empty materials are invalid";
   }
-  if (!first.startsWith("fn") || !first.endsWith("{")) {
-    return "Invalid function definition";
-  }
-  if (first.replaceAll(/[ \t]/g, "") !== FIRST_LINE) {
+  if (
+    !first.startsWith("fn") ||
+    !first.endsWith("{") ||
+    first.replaceAll(/[ \t]/g, "") !== FIRST_LINE
+  ) {
     return "Invalid function definition";
   }
   if (last !== "}") {
