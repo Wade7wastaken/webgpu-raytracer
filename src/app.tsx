@@ -217,44 +217,36 @@ const App: FC = () => {
         const w = new Vector3(directionX, directionY, directionZ).normalize();
         const u = vup.clone().cross(w).normalize();
         const v = w.clone().cross(u);
+        const forward = new Vector3(-directionX, 0, -directionZ).normalize();
+        const right = w.clone().cross(vup).normalize();
 
         const camSpeed = 0.001 * deltaTime;
 
         if (keysReference.current.W) {
           cameraPositionReference.current.add(
-            w
-              .clone()
-              .cross(vup)
-              .cross(vup)
-              .normalize()
-              .multiplyScalar(camSpeed),
+            forward.clone().multiplyScalar(camSpeed),
           );
         }
         if (keysReference.current.S) {
           cameraPositionReference.current.sub(
-            w
-              .clone()
-              .cross(vup)
-              .cross(vup)
-              .normalize()
-              .multiplyScalar(camSpeed),
+            forward.clone().multiplyScalar(camSpeed),
           );
         }
         if (keysReference.current.A) {
           cameraPositionReference.current.add(
-            w.clone().cross(vup).normalize().multiplyScalar(camSpeed),
+            right.clone().multiplyScalar(camSpeed),
           );
         }
         if (keysReference.current.D) {
           cameraPositionReference.current.sub(
-            w.clone().cross(vup).normalize().multiplyScalar(camSpeed),
+            right.clone().multiplyScalar(camSpeed),
           );
         }
         if (keysReference.current.Space) {
-          cameraPositionReference.current.add(vup.multiplyScalar(camSpeed));
+          cameraPositionReference.current.add(vup.clone().multiplyScalar(camSpeed));
         }
         if (keysReference.current.Shift) {
-          cameraPositionReference.current.sub(vup.multiplyScalar(camSpeed));
+          cameraPositionReference.current.sub(vup.clone().multiplyScalar(camSpeed));
         }
 
         const camera_center = cameraPositionReference.current.clone();
