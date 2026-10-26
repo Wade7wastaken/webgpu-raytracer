@@ -1,6 +1,6 @@
-import { ListObjectEditor } from "./listEditor";
-import { MeshObjectEditor } from "./meshObjectEditor";
-import { QuadObjectEditor } from "./quadEditor";
+import { ListObjectEditor } from "./ListEditor";
+import { MeshObjectEditor } from "./MeshEditor";
+import { QuadObjectEditor } from "./QuadEditor";
 
 import type { MaterialList } from "../materials";
 import type { SceneObject } from "./utilities";

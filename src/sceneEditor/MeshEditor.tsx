@@ -1,7 +1,7 @@
 import { MathUtils } from "three";
 
-import { NumberInput } from "./editorUi/numberInput";
-import { VectorInput } from "./editorUi/vectorInput";
+import { NumberInput } from "./editorUi/NumberInput";
+import { VectorInput } from "./editorUi/VectorInput";
 
 import type { MeshSceneObject } from "./utilities";
 import type { MaterialList } from "../materials";

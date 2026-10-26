@@ -1,6 +1,6 @@
 import { Vector3 } from "three";
 
-import { NumberInput } from "./numberInput";
+import { NumberInput } from "./NumberInput";
 
 import type { FC } from "react";
 

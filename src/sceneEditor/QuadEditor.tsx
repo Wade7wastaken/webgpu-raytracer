@@ -1,5 +1,5 @@
-import { NumberInput } from "./editorUi/numberInput";
-import { VectorInput } from "./editorUi/vectorInput";
+import { NumberInput } from "./editorUi/NumberInput";
+import { VectorInput } from "./editorUi/VectorInput";
 
 import type { MaterialList } from "../materials";
 import type { QuadSceneObject } from "./utilities";

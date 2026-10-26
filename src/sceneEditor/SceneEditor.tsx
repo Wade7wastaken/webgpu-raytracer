@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FC } from "react";
 import { Vector3 } from "three";
 
-import { ListObjectEditor } from "./listEditor";
+import { ListObjectEditor } from "./ListEditor";
 import {
   remapSceneMaterials,
   type ListSceneObject,

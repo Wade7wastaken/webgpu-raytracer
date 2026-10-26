@@ -2,14 +2,14 @@ import { useCallback, useEffect, useRef, useState, type FC } from "react";
 import { Vector3 } from "three";
 import { makeShaderDataDefinitions, makeStructuredView } from "webgpu-utils";
 
-import { MaterialEditor } from "./materialEditor";
+import { MaterialEditor } from "./MaterialEditor";
 import {
   initialMaterials,
   processShader,
   type MaterialList,
   type ShaderCompileResult,
 } from "./materials";
-import { MainEditor } from "./sceneEditor/sceneEditor";
+import { MainEditor } from "./sceneEditor/SceneEditor";
 import {
   sceneObjectToTriangles,
   type SceneObject,

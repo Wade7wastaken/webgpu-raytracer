@@ -2,8 +2,8 @@ import { useRef, useState } from "react";
 import { Mesh, Vector3 } from "three";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 
-import { Dropdown } from "./editorUi/dropdown";
-import { ObjectEditor } from "./objectEditor";
+import { Dropdown } from "./editorUi/Dropdown";
+import { ObjectEditor } from "./ObjectEditor";
 import { addObjectToList, type ListSceneObject } from "./utilities";
 
 import type { MaterialList } from "../materials";
