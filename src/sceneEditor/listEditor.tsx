@@ -4,11 +4,7 @@ import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 
 import { Dropdown } from "./editorUi/dropdown";
 import { ObjectEditor } from "./objectEditor";
-import {
-  addObjectToList,
-  type ListSceneObject,
-  type Triangle,
-} from "./utilities";
+import { addObjectToList, type ListSceneObject } from "./utilities";
 
 import type { MaterialList } from "../materials";
 import type { Dispatch, FC, SetStateAction } from "react";
@@ -47,7 +43,7 @@ export const ListObjectEditor: FC<ListProperties> = ({
       const importedObject = new OBJLoader().parse(source);
       importedObject.updateMatrixWorld(true);
 
-      const triangles: Triangle[] = [];
+      const triangles: [Vector3, Vector3, Vector3][] = [];
       importedObject.traverse((object: Object3D) => {
         if (!isMeshObject(object)) {
           return;
@@ -70,15 +66,11 @@ export const ListObjectEditor: FC<ListProperties> = ({
           vertexIndex + 2 < vertexCount;
           vertexIndex += 3
         ) {
-          triangles.push({
-            vertices: [
-              vertexAt(indexAt(vertexIndex)),
-              vertexAt(indexAt(vertexIndex + 1)),
-              vertexAt(indexAt(vertexIndex + 2)),
-            ],
-            materialName: defaultMaterialName,
-            colorIndex: 0,
-          });
+          triangles.push([
+            vertexAt(indexAt(vertexIndex)),
+            vertexAt(indexAt(vertexIndex + 1)),
+            vertexAt(indexAt(vertexIndex + 2)),
+          ]);
         }
       });
 
@@ -93,7 +85,7 @@ export const ListObjectEditor: FC<ListProperties> = ({
           {
             type: "mesh",
             name: file.name,
-            triangles,
+            triangles: triangles,
             transform: {
               position: new Vector3(0, 0, 0),
               rotation: new Vector3(0, 0, 0),

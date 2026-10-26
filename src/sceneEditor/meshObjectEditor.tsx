@@ -40,8 +40,8 @@ export const MeshObjectEditor: FC<Properties> = ({
         </button>
       </div>
 
-      <div className="flex">
-        <div className="grid grow gap-1.5">
+      <div className="flex flex-wrap gap-3">
+        <div className="grid min-w-0 flex-1 gap-1.5">
           <div className="flex items-center gap-2">
             <span className="w-16 shrink-0 text-xs text-zinc-500">
               Position
@@ -87,15 +87,33 @@ export const MeshObjectEditor: FC<Properties> = ({
           </div>
         </div>
 
-        <div className="flex flex-col">
-          <p>Material:</p>
-          <select>
-            {materials.materials.map((m) => (
-              <option key={m.name}>{m.name}</option>
-            ))}
-          </select>
-          <label>
-            data
+        <div className="grid w-32 shrink-0 content-start gap-1.5">
+          <label className="grid gap-1 text-xs text-zinc-500">
+            Material
+            <select
+              value={meshObject.materialName}
+              className="w-full min-w-0 cursor-pointer rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-xs text-zinc-200 focus:border-zinc-500 focus:outline-none"
+              onChange={(event) => {
+                const materialName = event.currentTarget.value;
+                updateMeshObject({
+                  ...meshObject,
+                  materialName,
+                  triangles: meshObject.triangles.map((triangle) => ({
+                    ...triangle,
+                    materialName,
+                  })),
+                });
+              }}
+            >
+              {materials.materials.map((material) => (
+                <option key={material.name} value={material.name}>
+                  {material.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs text-zinc-500">
+            Material data
             <NumberInput
               value={meshObject.colorIndex}
               onChange={(value) => {

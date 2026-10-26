@@ -60,7 +60,7 @@ export type ListSceneObject = BaseSceneObject & {
 export type MeshSceneObject = BaseSceneObject & {
   type: "mesh";
   name: string;
-  triangles: Triangle[];
+  triangles: [Vector3, Vector3, Vector3][];
   transform: Transform;
   materialName: string;
   colorIndex: number;
@@ -117,11 +117,11 @@ export const sceneObjectToTriangles = (
         );
 
         return object.triangles.map((triangle) => ({
-          vertices: triangle.vertices.map((vertex) =>
+          vertices: triangle.map((vertex) =>
             vertex.clone().applyMatrix4(transform),
           ) as [Vector3, Vector3, Vector3],
-          materialIndex: materialIndex(triangle.materialName),
-          colorIndex: triangle.colorIndex,
+          materialIndex: materialIndex(object.materialName),
+          colorIndex: object.colorIndex,
         }));
       }
     }
@@ -161,17 +161,10 @@ export const remapSceneMaterials = (
           : { ...object, materialName };
       }
       case "mesh": {
-        const triangles = object.triangles.map((triangle) => {
-          const materialName = resolveName(triangle.materialName);
-          return materialName === triangle.materialName
-            ? triangle
-            : { ...triangle, materialName };
-        });
-        return triangles.every(
-          (triangle, index) => triangle === object.triangles[index],
-        )
+        const materialName = resolveName(object.materialName);
+        return materialName === object.materialName
           ? object
-          : { ...object, triangles };
+          : { ...object, materialName };
       }
     }
   };
