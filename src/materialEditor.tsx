@@ -76,7 +76,7 @@ export const MaterialEditor: FC<Properties> = ({
     <div className="flex h-full min-h-0 gap-2">
       <section className="flex min-h-0 min-w-32 basis-1/6 flex-col overflow-hidden rounded-md border border-zinc-800 bg-zinc-950/50">
         <div className="flex h-9 shrink-0 items-center justify-between border-b border-zinc-800 px-2">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+          <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">
             Materials
           </h2>
           <div className="flex items-center gap-1">
@@ -152,7 +152,7 @@ export const MaterialEditor: FC<Properties> = ({
 
       <section className="flex min-h-0 min-w-40 basis-1/4 flex-col overflow-hidden rounded-md border border-zinc-800 bg-zinc-950/50">
         <div className="flex h-9 shrink-0 items-center justify-between border-b border-zinc-800 px-3">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+          <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">
             Shader compile
           </h2>
           <span
@@ -161,7 +161,7 @@ export const MaterialEditor: FC<Properties> = ({
             {statusLabel}
           </span>
         </div>
-        <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap wrap-break-word p-3 font-mono text-xs leading-relaxed text-zinc-300">
+        <pre className="min-h-0 flex-1 overflow-auto p-3 font-mono text-xs leading-relaxed wrap-break-word whitespace-pre-wrap text-zinc-300">
           {compileResult.message}
         </pre>
       </section>

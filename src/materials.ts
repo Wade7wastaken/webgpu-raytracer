@@ -76,7 +76,8 @@ ray = Ray(hit_rec.p, scatter_dir);`,
     },
     {
       name: "light",
-      source: "return ray_color * vec3f(1.0, 193.0 / 255.0, 104.0 / 255.0) * 15f;",
+      source:
+        "return ray_color * vec3f(1.0, 193.0 / 255.0, 104.0 / 255.0) * 15f;",
     },
   ],
 };

@@ -260,10 +260,14 @@ const App: FC = () => {
           );
         }
         if (keysReference.current.Space) {
-          cameraPositionReference.current.add(vup.clone().multiplyScalar(camSpeed));
+          cameraPositionReference.current.add(
+            vup.clone().multiplyScalar(camSpeed),
+          );
         }
         if (keysReference.current.Shift) {
-          cameraPositionReference.current.sub(vup.clone().multiplyScalar(camSpeed));
+          cameraPositionReference.current.sub(
+            vup.clone().multiplyScalar(camSpeed),
+          );
         }
 
         const camera_center = cameraPositionReference.current.clone();
@@ -558,10 +562,7 @@ const App: FC = () => {
     sceneReference.current = patch;
     sceneStale.current = true;
     sceneTriangles.current = formatTriangles(
-      sceneObjectToTriangles(
-        patch,
-        materialsReference.current.materials,
-      ),
+      sceneObjectToTriangles(patch, materialsReference.current.materials),
     );
   }, []);
 
@@ -630,15 +631,17 @@ const App: FC = () => {
 
         <div className="flex min-w-28 items-center gap-2 border-l border-zinc-700 pl-4 text-xs">
           <span className="text-zinc-500">FPS</span>
-          <span className="w-16 text-right font-mono tabular-nums text-zinc-200">
+          <span className="w-16 text-right font-mono text-zinc-200 tabular-nums">
             {fps.toFixed(2)}
           </span>
         </div>
 
         <div className="ml-auto flex items-center gap-5">
           <label className="flex items-center gap-2 text-xs">
-            <span className="whitespace-nowrap text-zinc-400">Rays / pixel</span>
-            <span className="w-7 text-right font-mono tabular-nums text-zinc-200">
+            <span className="whitespace-nowrap text-zinc-400">
+              Rays / pixel
+            </span>
+            <span className="w-7 text-right font-mono text-zinc-200 tabular-nums">
               {raysPerPixel}
             </span>
             <input
@@ -656,8 +659,10 @@ const App: FC = () => {
             />
           </label>
           <label className="flex items-center gap-2 text-xs">
-            <span className="whitespace-nowrap text-zinc-400">Bounce depth</span>
-            <span className="w-7 text-right font-mono tabular-nums text-zinc-200">
+            <span className="whitespace-nowrap text-zinc-400">
+              Bounce depth
+            </span>
+            <span className="w-7 text-right font-mono text-zinc-200 tabular-nums">
               {maxBounces}
             </span>
             <input
@@ -679,7 +684,7 @@ const App: FC = () => {
 
       <div className="flex min-h-0 grow basis-3/5 gap-2">
         <section className="flex min-h-0 min-w-0 basis-2/3 flex-col rounded-md border border-zinc-800 bg-zinc-900 p-2">
-          <div className="flex h-7 shrink-0 items-center px-1 text-xs font-medium uppercase tracking-wide text-zinc-500">
+          <div className="flex h-7 shrink-0 items-center px-1 text-xs font-medium tracking-wide text-zinc-500 uppercase">
             Viewport
           </div>
           <div className="grid min-h-0 flex-1 place-items-center overflow-hidden">

@@ -137,7 +137,9 @@ export const ListObjectEditor: FC<ListProperties> = ({
             setIsExpanded((expanded) => !expanded);
           }}
         >
-          <span className={isExpanded ? "inline-block rotate-90" : "inline-block"}>
+          <span
+            className={isExpanded ? "inline-block rotate-90" : "inline-block"}
+          >
             ▸
           </span>
         </button>
@@ -205,9 +207,7 @@ export const ListObjectEditor: FC<ListProperties> = ({
       {isExpanded && (
         <div
           className={
-            isRoot
-              ? "min-h-0 flex-1 overflow-y-auto pb-1"
-              : "space-y-1 pb-1"
+            isRoot ? "min-h-0 flex-1 overflow-y-auto pb-1" : "space-y-1 pb-1"
           }
         >
           {listObject.children.map((child, index) => (

@@ -26,7 +26,7 @@ export const Dropdown = <Item extends string>({
         {text}
       </button>
       {isOpen && (
-        <div className="absolute right-0 top-full z-20 mt-1 min-w-max rounded-md border border-zinc-700 bg-zinc-900 p-1 shadow-xl">
+        <div className="absolute top-full right-0 z-20 mt-1 min-w-max rounded-md border border-zinc-700 bg-zinc-900 p-1 shadow-xl">
           {options.map((option) => (
             <button
               key={option}

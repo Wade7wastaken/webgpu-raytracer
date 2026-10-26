@@ -12,7 +12,7 @@ export const NumberInput: FC<Properties> = ({ value, onChange }) => {
   return (
     <input
       type="text"
-      className="w-12 min-w-0 rounded border border-zinc-700 bg-zinc-950 px-1 py-0.5 text-right text-xs tabular-nums text-zinc-200 hover:cursor-e-resize focus:border-zinc-500 focus:outline-none"
+      className="w-12 min-w-0 rounded border border-zinc-700 bg-zinc-950 px-1 py-0.5 text-right text-xs text-zinc-200 tabular-nums hover:cursor-e-resize focus:border-zinc-500 focus:outline-none"
       unselectable="on"
       value={+value.toFixed(4)}
       onChange={(event) => {
@@ -25,7 +25,7 @@ export const NumberInput: FC<Properties> = ({ value, onChange }) => {
       onMouseUp={(event) => {
         setIsHeld(false);
         if (!dragged) {
-          event.currentTarget.select()
+          event.currentTarget.select();
         }
       }}
       onMouseMove={(event) => {
