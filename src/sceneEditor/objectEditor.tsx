@@ -10,6 +10,7 @@ type Properties = {
   updateSceneObject: (patch: SceneObject | undefined) => void;
   nextId: number;
   setNextId: Dispatch<SetStateAction<number>>;
+  defaultMaterialName: string;
 };
 
 export const ObjectEditor: FC<Properties> = ({
@@ -17,6 +18,7 @@ export const ObjectEditor: FC<Properties> = ({
   updateSceneObject,
   nextId,
   setNextId,
+  defaultMaterialName,
 }) => {
   switch (sceneObject.type) {
     case "list": {
@@ -28,6 +30,7 @@ export const ObjectEditor: FC<Properties> = ({
           }}
           nextId={nextId}
           setNextId={setNextId}
+          defaultMaterialName={defaultMaterialName}
         />
       );
     }

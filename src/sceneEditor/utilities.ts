@@ -1,5 +1,6 @@
 import { Euler, Matrix4, Quaternion } from "three";
 
+import type { Material } from "../materials";
 import type { Dispatch, SetStateAction } from "react";
 import type { Vector3 } from "three";
 
@@ -18,6 +19,12 @@ export const addObjectToList = (
 };
 
 export type Triangle = {
+  vertices: [Vector3, Vector3, Vector3];
+  materialName: string;
+  colorIndex: number;
+};
+
+export type IndexedTriangle = {
   vertices: [Vector3, Vector3, Vector3];
   materialIndex: number;
   colorIndex: number;
@@ -41,7 +48,7 @@ export type QuadSceneObject = BaseSceneObject & {
   base: Vector3;
   u: Vector3;
   v: Vector3;
-  materialIndex: number;
+  materialName: string;
   colorIndex: number;
 };
 
@@ -65,48 +72,104 @@ export type SceneObjectNoId =
 
 export const sceneObjectToTriangles = (
   sceneObject: SceneObject,
-): Triangle[] => {
-  switch (sceneObject.type) {
-    case "list": {
-      return sceneObject.children.flatMap((child) =>
-        sceneObjectToTriangles(child),
-      );
-    }
-    case "quad": {
-      const b = sceneObject.base.clone().add(sceneObject.u);
-      const c = sceneObject.base.clone().add(sceneObject.v);
-      const d = sceneObject.base.clone().add(sceneObject.u).add(sceneObject.v);
+  materials: Material[],
+): IndexedTriangle[] => {
+  const materialIndices = new Map(
+    materials.map((material, index) => [material.name, index] as const),
+  );
+  const materialIndex = (materialName: string): number => {
+    return materialIndices.get(materialName) ?? 0;
+  };
 
-      return [
-        {
-          vertices: [sceneObject.base, b, c],
-          materialIndex: sceneObject.materialIndex,
-          colorIndex: sceneObject.colorIndex,
-        },
-        {
-          vertices: [b, c, d],
-          materialIndex: sceneObject.materialIndex,
-          colorIndex: sceneObject.colorIndex,
-        },
-      ];
-    }
-    case "mesh": {
-      const { position, rotation, scale } = sceneObject.transform;
-      const transform = new Matrix4().compose(
-        position,
-        new Quaternion().setFromEuler(
-          new Euler(rotation.x, rotation.y, rotation.z, "XYZ"),
-        ),
-        scale,
-      );
+  const convertObject = (object: SceneObject): IndexedTriangle[] => {
+    switch (object.type) {
+      case "list": {
+        return object.children.flatMap((element) => convertObject(element));
+      }
+      case "quad": {
+        const b = object.base.clone().add(object.u);
+        const c = object.base.clone().add(object.v);
+        const d = object.base.clone().add(object.u).add(object.v);
 
-      return sceneObject.triangles.map((triangle) => ({
-        vertices: triangle.vertices.map((vertex) =>
-          vertex.clone().applyMatrix4(transform),
-        ) as [Vector3, Vector3, Vector3],
-        materialIndex: triangle.materialIndex,
-        colorIndex: triangle.colorIndex,
-      }));
+        return [
+          {
+            vertices: [object.base, b, c],
+            materialIndex: materialIndex(object.materialName),
+            colorIndex: object.colorIndex,
+          },
+          {
+            vertices: [b, c, d],
+            materialIndex: materialIndex(object.materialName),
+            colorIndex: object.colorIndex,
+          },
+        ];
+      }
+      case "mesh": {
+        const { position, rotation, scale } = object.transform;
+        const transform = new Matrix4().compose(
+          position,
+          new Quaternion().setFromEuler(
+            new Euler(rotation.x, rotation.y, rotation.z, "XYZ"),
+          ),
+          scale,
+        );
+
+        return object.triangles.map((triangle) => ({
+          vertices: triangle.vertices.map((vertex) =>
+            vertex.clone().applyMatrix4(transform),
+          ) as [Vector3, Vector3, Vector3],
+          materialIndex: materialIndex(triangle.materialName),
+          colorIndex: triangle.colorIndex,
+        }));
+      }
     }
-  }
+  };
+
+  return convertObject(sceneObject);
+};
+
+export const remapSceneMaterials = (
+  sceneObject: SceneObject,
+  materialNames: string[],
+): SceneObject => {
+  const materialNameSet = new Set(materialNames);
+  const fallbackMaterialName = materialNames[0];
+
+  const resolveName = (materialName: string): string =>
+    materialNameSet.has(materialName) || fallbackMaterialName === undefined
+      ? materialName
+      : fallbackMaterialName;
+
+  const remapObject = (object: SceneObject): SceneObject => {
+    switch (object.type) {
+      case "list": {
+        let isChanged = false;
+        const children = object.children.map((child) => {
+          const updated = remapObject(child);
+          isChanged ||= updated !== child;
+          return updated;
+        });
+        return isChanged ? { ...object, children } : object;
+      }
+      case "quad": {
+        const materialName = resolveName(object.materialName);
+        return materialName === object.materialName
+          ? object
+          : { ...object, materialName };
+      }
+      case "mesh": {
+        let isChanged = false;
+        const triangles = object.triangles.map((triangle) => {
+          const materialName = resolveName(triangle.materialName);
+          isChanged ||= materialName !== triangle.materialName;
+          return materialName === triangle.materialName
+            ? triangle
+            : { ...triangle, materialName };
+        });
+        return isChanged ? { ...object, triangles } : object;
+      }
+    }
+  };
+
+  return remapObject(sceneObject);
 };

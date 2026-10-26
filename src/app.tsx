@@ -1,15 +1,22 @@
-import { useEffect, useRef, useState, type FC } from "react";
+import { useCallback, useEffect, useRef, useState, type FC } from "react";
 import { Vector3 } from "three";
 import { makeShaderDataDefinitions, makeStructuredView } from "webgpu-utils";
 
 import { MaterialEditor } from "./materialEditor";
-import { processShader, type MaterialList } from "./materials";
+import {
+  initialMaterials,
+  processShader,
+  type MaterialList,
+  type ShaderCompileResult,
+} from "./materials";
 import { MainEditor } from "./sceneEditor/sceneEditor";
 import {
   sceneObjectToTriangles,
   type SceneObject,
-  type Triangle,
+  type IndexedTriangle,
 } from "./sceneEditor/utilities";
+
+const TRIANGLE_FLOAT_COUNT = 16;
 
 const fail = (message: string): void => {
   alert(message);
@@ -19,7 +26,7 @@ const formatTriangle = ({
   vertices,
   materialIndex,
   colorIndex,
-}: Triangle): number[] => {
+}: IndexedTriangle): number[] => {
   const a = vertices[0];
   const b = vertices[1];
   const c = vertices[2];
@@ -38,7 +45,7 @@ const formatTriangle = ({
   ];
 };
 
-const formatTriangles = (triangles: Triangle[]): Float32Array => {
+const formatTriangles = (triangles: IndexedTriangle[]): Float32Array => {
   const buffer = [];
   for (const triangle of triangles) {
     buffer.push(...formatTriangle(triangle));
@@ -69,21 +76,29 @@ const App: FC = () => {
   });
 
   const [fps, setFps] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+  const [raysPerPixel, setRaysPerPixel] = useState(10);
+  const [maxBounces, setMaxBounces] = useState(10);
+  const [materials, setMaterials] = useState<MaterialList>(initialMaterials);
+  const [compileResult, setCompileResult] = useState<ShaderCompileResult>({
+    status: "idle",
+    message: "No compile result yet",
+  });
   const isRunningReference = useRef(false);
 
-  const raysPerPixel = useRef(10);
-  const maxBounces = useRef(10);
+  const raysPerPixelReference = useRef(10);
+  const maxBouncesReference = useRef(10);
 
-  const defaultMaterials = { materials: [] };
   const defaultPresentationFormat = "bgra8unorm";
-  const materialsReference = useRef<MaterialList>(defaultMaterials);
+  const materialsReference = useRef<MaterialList>(initialMaterials);
   const presentationFormatReference = useRef<GPUTextureFormat>(
     defaultPresentationFormat,
   );
   const shaderSourceReference = useRef<string>(
-    processShader(defaultMaterials, defaultPresentationFormat),
+    processShader(initialMaterials, defaultPresentationFormat),
   );
   const shaderStaleReference = useRef(false);
+  const shaderCompileVersionReference = useRef(0);
 
   const sceneReference = useRef<SceneObject>({
     type: "list",
@@ -91,10 +106,8 @@ const App: FC = () => {
     children: [],
     enabled: true,
   }); // main source of truth for the scene
-  const sceneTriangles = useRef(formatTriangles([])); // updated in setUniforms when sceneReference changes
-  const sceneStale = useRef(false); // true when sceneReference is stale
-
-  const [shaderError, setShaderError] = useState("");
+  const sceneTriangles = useRef(formatTriangles([]));
+  const sceneStale = useRef(false);
 
   useEffect(() => {
     let isCanceled = false;
@@ -191,6 +204,10 @@ const App: FC = () => {
       });
 
       let bindGroupLayout = pipeline.getBindGroupLayout(0);
+      setCompileResult({
+        status: "passed",
+        message: "Shader compiled correctly",
+      });
 
       const setUniforms = (
         canvasWidth: number,
@@ -269,7 +286,10 @@ const App: FC = () => {
 
         if (sceneStale.current) {
           sceneTriangles.current = formatTriangles(
-            sceneObjectToTriangles(sceneReference.current),
+            sceneObjectToTriangles(
+              sceneReference.current,
+              materialsReference.current.materials,
+            ),
           );
           if (triangleBuffer.size < sceneTriangles.current.byteLength) {
             triangleBuffer.destroy();
@@ -287,9 +307,9 @@ const App: FC = () => {
           pixel_delta: [...pixelDeltaU, 0, ...pixelDeltaV, 0],
           camera_center: camera_center.toArray(),
           time,
-          rays_per_pixel: raysPerPixel.current,
-          max_bounces: maxBounces.current,
-          num_tris: sceneObjectToTriangles(sceneReference.current).length, // FIXME
+          rays_per_pixel: raysPerPixelReference.current,
+          max_bounces: maxBouncesReference.current,
+          num_tris: sceneTriangles.current.length / TRIANGLE_FLOAT_COUNT,
         });
       };
 
@@ -299,15 +319,86 @@ const App: FC = () => {
       let lastTime = now;
       let lastFpsUpdate = now;
       let fpsUpdateFrameCount = 0;
+      let wasRunning = false;
 
       function render(now: DOMHighResTimeStamp): void {
         if (isCanceled || device == undefined || context == undefined) {
           return;
         }
 
+        if (shaderStaleReference.current) {
+          shaderStaleReference.current = false;
+          const compileVersion = ++shaderCompileVersionReference.current;
+
+          void (async (): Promise<void> => {
+            shaderSourceReference.current = processShader(
+              materialsReference.current,
+              presentationFormatReference.current,
+            );
+
+            device.pushErrorScope("validation");
+            const newModule = device.createShaderModule({
+              code: shaderSourceReference.current,
+            });
+
+            const error = await device.popErrorScope();
+            if (
+              isCanceled ||
+              compileVersion !== shaderCompileVersionReference.current
+            ) {
+              return;
+            }
+
+            if (error == undefined) {
+              module = newModule;
+              pipeline = device.createComputePipeline({
+                label: "pipeline",
+                layout: "auto",
+                compute: {
+                  module,
+                  entryPoint: "cs",
+                },
+              });
+
+              bindGroupLayout = pipeline.getBindGroupLayout(0);
+              setCompileResult({
+                status: "passed",
+                message: "Shader compiled correctly",
+              });
+            } else {
+              const info = await newModule.getCompilationInfo();
+              if (
+                isCanceled ||
+                compileVersion !== shaderCompileVersionReference.current
+              ) {
+                return;
+              }
+              const message = info.messages
+                .toSorted((a, b) => b.lineNum - a.lineNum)
+                .map((entry) => entry.message)
+                .filter((entry) => entry.length > 0)
+                .join("\n")
+                .trim();
+
+              setCompileResult({
+                status: "failed",
+                message: message || error.message,
+              });
+            }
+          })();
+        }
+
         if (!isRunningReference.current) {
+          wasRunning = false;
           rafId = requestAnimationFrame(render);
           return;
+        }
+
+        if (!wasRunning) {
+          wasRunning = true;
+          lastTime = now;
+          lastFpsUpdate = now;
+          fpsUpdateFrameCount = 0;
         }
 
         // timing and fps logic
@@ -331,56 +422,6 @@ const App: FC = () => {
           device,
         );
         device.queue.writeBuffer(uniformBuffer, 0, uniformsData.arrayBuffer);
-
-        if (shaderStaleReference.current) {
-          shaderStaleReference.current = false;
-
-          void (async (): Promise<void> => {
-            shaderSourceReference.current = processShader(
-              materialsReference.current,
-              presentationFormatReference.current,
-            );
-
-            device.pushErrorScope("validation");
-            const newModule = device.createShaderModule({
-              code: shaderSourceReference.current,
-            });
-
-            const error = await device.popErrorScope();
-
-            if (error == undefined) {
-              setShaderError("Shader compiled correctly");
-              module = newModule;
-              pipeline = device.createComputePipeline({
-                label: "pipeline",
-                layout: "auto",
-                compute: {
-                  module,
-                  entryPoint: "cs",
-                },
-              });
-
-              bindGroupLayout = pipeline.getBindGroupLayout(0);
-            } else {
-              const info = await newModule.getCompilationInfo();
-
-              // Sort the messages by line numbers in reverse order
-              // so that as we insert the messages they won't affect
-              // the line numbers.
-              const msgs = info.messages.toSorted(
-                (a, b) => b.lineNum - a.lineNum,
-              );
-
-              setShaderError(
-                msgs
-                  .map((m) => m.message)
-                  .filter((m) => m.length > 0)
-                  .join("\n")
-                  .trim(),
-              );
-            }
-          })();
-        }
 
         const bindGroup = device.createBindGroup({
           layout: bindGroupLayout,
@@ -511,96 +552,168 @@ const App: FC = () => {
     };
   }, []);
 
+  const updateSceneReference = useCallback((patch: SceneObject): void => {
+    sceneReference.current = patch;
+    sceneStale.current = true;
+    sceneTriangles.current = formatTriangles(
+      sceneObjectToTriangles(
+        patch,
+        materialsReference.current.materials,
+      ),
+    );
+  }, []);
+
+  const updateMaterials = useCallback((patch: MaterialList): void => {
+    const previousMaterials = materialsReference.current.materials;
+    const materialOrderChanged =
+      previousMaterials.length !== patch.materials.length ||
+      patch.materials.some(
+        (material, index) => previousMaterials[index]?.name !== material.name,
+      );
+
+    setMaterials(patch);
+    materialsReference.current = patch;
+    shaderStaleReference.current = true;
+    shaderCompileVersionReference.current += 1;
+    shaderSourceReference.current = processShader(
+      patch,
+      presentationFormatReference.current,
+    );
+    if (materialOrderChanged) {
+      sceneTriangles.current = formatTriangles(
+        sceneObjectToTriangles(sceneReference.current, patch.materials),
+      );
+      sceneStale.current = true;
+    }
+  }, []);
+
   return (
-    <div className="p-4">
-      <div className="flex gap-8">
-        <div>
-          <div className="flex gap-2 mb-2 items-center-safe">
-            <button
-              className="bg-gray-500 px-2 py-1 rounded hover:cursor-pointer"
-              onClick={() => {
-                isRunningReference.current = true;
-              }}
-            >
-              Start
-            </button>
-            <button
-              className="bg-gray-500 px-2 py-1 rounded hover:cursor-pointer"
-              onClick={() => {
-                isRunningReference.current = false;
-              }}
-            >
-              Stop
-            </button>
-            <p>FPS: {fps.toFixed(2)}</p>
-            <label className="ml-16 flex gap-1">
-              Rays per pixel:
-              <input
-                type="range"
-                min={1}
-                max={100}
-                step={1}
-                defaultValue={10}
-                onChange={(event) => {
-                  raysPerPixel.current = Number.parseInt(event.target.value);
-                }}
-              />
-            </label>
-            <label className="flex gap-1">
-              Max ray bounces:
-              <input
-                type="range"
-                min={1}
-                max={100}
-                step={1}
-                defaultValue={10}
-                onChange={(event) => {
-                  maxBounces.current = Number.parseInt(event.target.value);
-                }}
-              />
-            </label>
-          </div>
-          <canvas
-            ref={canvasReference}
-            className="block border"
-            width={(720 * 16) / 9}
-            height={720}
+    <div className="flex h-dvh flex-col gap-2 overflow-hidden bg-zinc-950 p-3 text-zinc-100 scheme-dark">
+      <header className="flex h-14 shrink-0 items-center gap-4 rounded-md border border-zinc-800 bg-zinc-900 px-3">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-pressed={isRunning}
+            className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${isRunning ? "bg-zinc-800 text-zinc-400" : "bg-zinc-200 text-zinc-950 hover:bg-white"}`}
             onClick={() => {
-              void (async (): Promise<void> => {
-                if (
-                  !document.pointerLockElement &&
-                  canvasReference.current != undefined
-                ) {
-                  await canvasReference.current.requestPointerLock({
-                    // unadjustedMovement: true,
-                  });
-                }
-              })();
+              isRunningReference.current = true;
+              setIsRunning(true);
             }}
-          ></canvas>
+          >
+            Start
+          </button>
+          <button
+            type="button"
+            aria-pressed={!isRunning}
+            className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${isRunning ? "bg-zinc-200 text-zinc-950 hover:bg-white" : "bg-zinc-800 text-zinc-400"}`}
+            onClick={() => {
+              isRunningReference.current = false;
+              setIsRunning(false);
+            }}
+          >
+            Stop
+          </button>
         </div>
-        <MainEditor
-          setSceneReference={(patch) => {
-            sceneReference.current = patch;
-            sceneStale.current = true;
-            sceneTriangles.current = formatTriangles(
-              sceneObjectToTriangles(sceneReference.current),
-            );
-          }}
-        />
+
+        <div className="flex min-w-28 items-center gap-2 border-l border-zinc-700 pl-4">
+          <span
+            className={`size-2 rounded-full ${isRunning ? "bg-zinc-200" : "bg-zinc-600"}`}
+          />
+          <span className="text-xs text-zinc-300">
+            {isRunning ? "Running" : "Stopped"}
+          </span>
+        </div>
+
+        <div className="flex min-w-28 items-center gap-2 border-l border-zinc-700 pl-4 text-xs">
+          <span className="text-zinc-500">FPS</span>
+          <span className="w-16 text-right font-mono tabular-nums text-zinc-200">
+            {fps.toFixed(2)}
+          </span>
+        </div>
+
+        <div className="ml-auto flex items-center gap-5">
+          <label className="flex items-center gap-2 text-xs">
+            <span className="whitespace-nowrap text-zinc-400">Rays / pixel</span>
+            <span className="w-7 text-right font-mono tabular-nums text-zinc-200">
+              {raysPerPixel}
+            </span>
+            <input
+              className="h-2 w-28 cursor-pointer appearance-none rounded-full bg-zinc-700 accent-zinc-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-500"
+              type="range"
+              min={1}
+              max={100}
+              step={1}
+              value={raysPerPixel}
+              onChange={(event) => {
+                const value = Number.parseInt(event.target.value);
+                raysPerPixelReference.current = value;
+                setRaysPerPixel(value);
+              }}
+            />
+          </label>
+          <label className="flex items-center gap-2 text-xs">
+            <span className="whitespace-nowrap text-zinc-400">Bounce depth</span>
+            <span className="w-7 text-right font-mono tabular-nums text-zinc-200">
+              {maxBounces}
+            </span>
+            <input
+              className="h-2 w-28 cursor-pointer appearance-none rounded-full bg-zinc-700 accent-zinc-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-500"
+              type="range"
+              min={1}
+              max={100}
+              step={1}
+              value={maxBounces}
+              onChange={(event) => {
+                const value = Number.parseInt(event.target.value);
+                maxBouncesReference.current = value;
+                setMaxBounces(value);
+              }}
+            />
+          </label>
+        </div>
+      </header>
+
+      <div className="flex min-h-0 grow basis-3/5 gap-2">
+        <section className="flex min-h-0 min-w-0 basis-2/3 flex-col rounded-md border border-zinc-800 bg-zinc-900 p-2">
+          <div className="flex h-7 shrink-0 items-center px-1 text-xs font-medium uppercase tracking-wide text-zinc-500">
+            Viewport
+          </div>
+          <div className="grid min-h-0 flex-1 place-items-center overflow-hidden">
+            <canvas
+              ref={canvasReference}
+              className="block max-h-full max-w-full rounded border border-zinc-700 bg-black object-contain"
+              width={(720 * 16) / 9}
+              height={720}
+              onClick={() => {
+                void (async (): Promise<void> => {
+                  if (
+                    !document.pointerLockElement &&
+                    canvasReference.current != undefined
+                  ) {
+                    await canvasReference.current.requestPointerLock({
+                      // unadjustedMovement: true,
+                    });
+                  }
+                })();
+              }}
+            ></canvas>
+          </div>
+        </section>
+
+        <section className="min-h-0 min-w-0 basis-1/3 overflow-hidden rounded-md border border-zinc-800 bg-zinc-900 p-2">
+          <MainEditor
+            materials={materials}
+            setSceneReference={updateSceneReference}
+          />
+        </section>
       </div>
-      <div className="flex">
+
+      <div className="min-h-0 grow basis-2/5 rounded-md border border-zinc-800 bg-zinc-900 p-2">
         <MaterialEditor
-          setMaterialsReference={(patch) => {
-            materialsReference.current = patch;
-            shaderStaleReference.current = true;
-            shaderSourceReference.current = processShader(
-              materialsReference.current,
-              presentationFormatReference.current,
-            );
-          }}
+          materials={materials}
+          compileResult={compileResult}
+          onMaterialsChange={updateMaterials}
         />
-        <pre className="w-1/4">{shaderError}</pre>
       </div>
     </div>
   );

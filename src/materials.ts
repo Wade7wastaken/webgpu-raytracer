@@ -57,6 +57,30 @@ export type MaterialList = {
   materials: Material[];
 };
 
+export type ShaderCompileResult = {
+  status: "idle" | "passed" | "failed";
+  message: string;
+};
+
+export const initialMaterials: MaterialList = {
+  materials: [
+    {
+      name: "lambertian",
+      source: `var scatter_dir = hit_rec.n + rand_normal_vector(state);
+if (abs(scatter_dir.x) < 1e-6 && abs(scatter_dir.y) < 1e-6 && abs(scatter_dir.z) < 1e-6) {
+    scatter_dir = hit_rec.n;
+}
+let colors = array(vec3f(0.73, 0.73, 0.73), vec3f(0.65, 0.05, 0.05), vec3f(0.12, 0.45, 0.15));
+ray_color *= colors[u32(hit_rec.color_idx)];
+ray = Ray(hit_rec.p, scatter_dir);`,
+    },
+    {
+      name: "light",
+      source: "return ray_color * vec3f(1.0, 193.0 / 255.0, 104.0 / 255.0) * 15f;",
+    },
+  ],
+};
+
 export const processShader = (
   materialList: MaterialList,
   presentationFormat: string,
@@ -66,11 +90,11 @@ export const processShader = (
     () => presentationFormat,
   );
 
-  const materialInit = `let point = hitRec.p;
-let normal = hitRec.n;
-let time = hitRec.t;
-let mat_color = u32(hitRec.colorIdx);
-switch u32(hitRec.mat) {`;
+  const materialInit = `let point = hit_rec.p;
+let normal = hit_rec.n;
+let time = hit_rec.t;
+let mat_color = u32(hit_rec.color_idx);
+switch u32(hit_rec.mat) {`;
 
   const materialSource = materialList.materials
     .map((material, index) => `case ${index}: {\n${material.source}\n}`)

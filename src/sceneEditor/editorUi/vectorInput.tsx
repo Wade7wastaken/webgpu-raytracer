@@ -11,28 +11,34 @@ type Properties = {
 
 export const VectorInput: FC<Properties> = ({ value, onChange }) => {
   return (
-    <>
-      <p className="text-right mr-1">X</p>
-      <NumberInput
-        value={value.x}
-        onChange={(newX) => {
-          onChange(new Vector3(newX, value.y, value.z));
-        }}
-      />
-      <p className="text-right mr-1">Y</p>
-      <NumberInput
-        value={value.y}
-        onChange={(newY) => {
-          onChange(new Vector3(value.x, newY, value.z));
-        }}
-      />
-      <p className="text-right mr-1">Z</p>
-      <NumberInput
-        value={value.z}
-        onChange={(newZ) => {
-          onChange(new Vector3(value.x, value.y, newZ));
-        }}
-      />
-    </>
+    <div className="grid min-w-0 flex-1 grid-cols-3 gap-1">
+      <label className="flex min-w-0 items-center gap-1 text-xs text-zinc-500">
+        X
+        <NumberInput
+          value={value.x}
+          onChange={(newX) => {
+            onChange(new Vector3(newX, value.y, value.z));
+          }}
+        />
+      </label>
+      <label className="flex min-w-0 items-center gap-1 text-xs text-zinc-500">
+        Y
+        <NumberInput
+          value={value.y}
+          onChange={(newY) => {
+            onChange(new Vector3(value.x, newY, value.z));
+          }}
+        />
+      </label>
+      <label className="flex min-w-0 items-center gap-1 text-xs text-zinc-500">
+        Z
+        <NumberInput
+          value={value.z}
+          onChange={(newZ) => {
+            onChange(new Vector3(value.x, value.y, newZ));
+          }}
+        />
+      </label>
+    </div>
   );
 };

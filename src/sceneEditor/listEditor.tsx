@@ -18,6 +18,7 @@ type ListProperties = {
   updateListObject: (patch: ListSceneObject | undefined) => void;
   nextId: number;
   setNextId: Dispatch<SetStateAction<number>>;
+  defaultMaterialName: string;
 };
 
 // hack to please eslint
@@ -29,9 +30,12 @@ export const ListObjectEditor: FC<ListProperties> = ({
   updateListObject,
   nextId,
   setNextId,
+  defaultMaterialName,
 }) => {
   const fileInputReference = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState("");
+  const [isExpanded, setIsExpanded] = useState(true);
+  const isRoot = listObject.id === 0;
 
   const importObjectFile = async (file: File): Promise<void> => {
     setImportError("");
@@ -69,7 +73,7 @@ export const ListObjectEditor: FC<ListProperties> = ({
               vertexAt(indexAt(vertexIndex + 1)),
               vertexAt(indexAt(vertexIndex + 2)),
             ],
-            materialIndex: 0,
+            materialName: defaultMaterialName,
             colorIndex: 0,
           });
         }
@@ -104,7 +108,13 @@ export const ListObjectEditor: FC<ListProperties> = ({
   };
 
   return (
-    <div className="border bg-gray-200 rounded-xl m-2 p-2">
+    <div
+      className={
+        isRoot
+          ? "flex h-full min-h-0 flex-col"
+          : "ml-2 border-l border-zinc-800 pl-2"
+      }
+    >
       <input
         ref={fileInputReference}
         type="file"
@@ -118,21 +128,28 @@ export const ListObjectEditor: FC<ListProperties> = ({
           event.currentTarget.value = "";
         }}
       />
-      <div className="flex justify-end gap-2">
-        <p
-          className="hover:cursor-pointer"
+      <div className="flex min-h-8 items-center gap-2 rounded-md px-1 text-xs">
+        <button
+          type="button"
+          aria-label={isExpanded ? "Collapse group" : "Expand group"}
+          className="w-5 rounded text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
           onClick={() => {
-            updateListObject(undefined);
+            setIsExpanded((expanded) => !expanded);
           }}
         >
-          X
-        </p>
+          <span className={isExpanded ? "inline-block rotate-90" : "inline-block"}>
+            ▸
+          </span>
+        </button>
+        <span className="min-w-0 flex-1 font-medium text-zinc-300">
+          {isRoot ? "Scene" : `Collection ${listObject.id}`}
+        </span>
         <Dropdown
-          text="+"
-          options={["quad", "list", "obj"]}
+          text="+ Add"
+          options={["Quad", "Collection", "Import OBJ"]}
           onSelect={(option) => {
             switch (option) {
-              case "quad": {
+              case "Quad": {
                 updateListObject(
                   addObjectToList(
                     listObject,
@@ -142,7 +159,7 @@ export const ListObjectEditor: FC<ListProperties> = ({
                       u: new Vector3(1, 0, 0),
                       v: new Vector3(0, 1, 0),
                       colorIndex: 0,
-                      materialIndex: 0,
+                      materialName: defaultMaterialName,
                       enabled: true,
                     },
                     nextId,
@@ -151,7 +168,7 @@ export const ListObjectEditor: FC<ListProperties> = ({
                 );
                 break;
               }
-              case "list": {
+              case "Collection": {
                 updateListObject(
                   addObjectToList(
                     listObject,
@@ -162,40 +179,58 @@ export const ListObjectEditor: FC<ListProperties> = ({
                 );
                 break;
               }
-              case "obj": {
+              case "Import OBJ": {
                 fileInputReference.current?.click();
                 break;
               }
             }
           }}
         />
-        <p>Object Group</p>
+        <button
+          type="button"
+          aria-label={isRoot ? "Clear scene" : "Remove collection"}
+          className="rounded px-1.5 py-0.5 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-100"
+          onClick={() => {
+            updateListObject(undefined);
+          }}
+        >
+          ×
+        </button>
       </div>
       {importError !== "" && (
-        <p className="text-red-700" role="alert">
+        <p className="px-1 py-1 text-xs text-zinc-400" role="alert">
           {importError}
         </p>
       )}
-      <div className="">
-        {listObject.children.map((child, index) => (
-          <ObjectEditor
-            key={child.id}
-            sceneObject={child}
-            updateSceneObject={(patch) => {
-              updateListObject({
-                ...listObject,
-                children: [
-                  ...listObject.children.slice(0, index),
-                  ...(patch === undefined ? [] : [{ ...child, ...patch }]),
-                  ...listObject.children.slice(index + 1),
-                ],
-              });
-            }}
-            nextId={nextId}
-            setNextId={setNextId}
-          />
-        ))}
-      </div>
+      {isExpanded && (
+        <div
+          className={
+            isRoot
+              ? "min-h-0 flex-1 overflow-y-auto pb-1"
+              : "space-y-1 pb-1"
+          }
+        >
+          {listObject.children.map((child, index) => (
+            <ObjectEditor
+              key={child.id}
+              sceneObject={child}
+              updateSceneObject={(patch) => {
+                updateListObject({
+                  ...listObject,
+                  children: [
+                    ...listObject.children.slice(0, index),
+                    ...(patch === undefined ? [] : [{ ...child, ...patch }]),
+                    ...listObject.children.slice(index + 1),
+                  ],
+                });
+              }}
+              nextId={nextId}
+              setNextId={setNextId}
+              defaultMaterialName={defaultMaterialName}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

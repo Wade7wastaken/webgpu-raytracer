@@ -67,16 +67,16 @@ fn ray_at(r: ptr<function, Ray>, t: f32) -> vec3f {
     return r.orig + t * r.dir;
 }
 
-struct HitRecord {
+struct hit_record {
     p: vec3f,
     n: vec3f,
     t: f32,
     mat: f32,
-    colorIdx: f32,
+    color_idx: f32,
 }
 
-fn hit_triangle(r: ptr<function, Ray>, triIdx: u32, max_t: f32, out_hit_rec: ptr<function, HitRecord>) -> bool {
-    let tri = triangles[triIdx];
+fn hit_triangle(r: ptr<function, Ray>, tri_idx: u32, max_t: f32, out_hit_rec: ptr<function, hit_record>) -> bool {
+    let tri = triangles[tri_idx];
     let a = tri.a.xyz;
     let edge1 = tri.edge1.xyz;
     let edge2 = tri.edge2.xyz;
@@ -120,20 +120,20 @@ fn hit_triangle(r: ptr<function, Ray>, triIdx: u32, max_t: f32, out_hit_rec: ptr
     out_hit_rec.n = normal;
     out_hit_rec.t = t;
     out_hit_rec.mat = tri.a.w;
-    out_hit_rec.colorIdx = tri.edge1.w;
+    out_hit_rec.color_idx = tri.edge1.w;
 
     return true;
 }
 
 fn rand_normal_vector(state: ptr<function, u32>) -> vec3<f32> {
     let r = pow(rand(state), 0.33333f);
-    let cosTheta = 1f - 2f * rand(state);
-    let sinTheta = sqrt(1f - cosTheta * cosTheta);
+    let cos_theta = 1f - 2f * rand(state);
+    let sin_theta = sqrt(1f - cos_theta * cos_theta);
     let phi = 2f * 3.1415926535 * rand(state);
 
-    let x = r * sinTheta * cos(phi);
-    let y = r * sinTheta * sin(phi);
-    let z = cosTheta;
+    let x = r * sin_theta * cos(phi);
+    let y = r * sin_theta * sin(phi);
+    let z = cos_theta;
 
     return vec3(x, y, z);
 }
@@ -141,9 +141,9 @@ fn rand_normal_vector(state: ptr<function, u32>) -> vec3<f32> {
 fn ray_color(initial_ray: Ray, num_tris: u32, max_bounces: u32, state: ptr<function, u32>) -> vec3f {
     var ray = initial_ray;
 
-    var rayColor = vec3f(1.0, 1.0, 1.0);
+    var ray_color = vec3f(1.0, 1.0, 1.0);
 
-    var hitRec = HitRecord();
+    var hit_rec = hit_record();
 
     let far_away = 10000000f;
 
@@ -151,9 +151,9 @@ fn ray_color(initial_ray: Ray, num_tris: u32, max_bounces: u32, state: ptr<funct
 
         var max_t = far_away;
 
-        for (var triIdx = 0u; triIdx < num_tris; triIdx += 1) {
-            if hit_triangle(&ray, triIdx, max_t, &hitRec) {
-                max_t = hitRec.t;
+        for (var tri_idx = 0u; tri_idx < num_tris; tri_idx += 1) {
+            if hit_triangle(&ray, tri_idx, max_t, &hit_rec) {
+                max_t = hit_rec.t;
             }
         }
 
@@ -161,10 +161,10 @@ fn ray_color(initial_ray: Ray, num_tris: u32, max_bounces: u32, state: ptr<funct
         if max_t < far_away {
             //${materials}
         } else {
-            // return rayColor * vec3f(0.1, 0.1, 0.1);
+            // return ray_color * vec3f(0.1, 0.1, 0.1);
             let unit_dir = normalize(ray.dir);
             let a = 0.5 * (unit_dir.y + 1.0);
-            return rayColor * ((1.0-a)*vec3f(1.0, 1.0, 1.0) + a*vec3f(0.3, 0.7, 1.0));
+            return ray_color * ((1.0-a)*vec3f(1.0, 1.0, 1.0) + a*vec3f(0.3, 0.7, 1.0));
         }
     }
 
@@ -187,8 +187,8 @@ fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
 @compute @workgroup_size(16, 16) fn cs(
     @builtin(global_invocation_id) id: vec3u
 ) {
-    let texDims = textureDimensions(tex);
-    if (id.x >= texDims.x || id.y >= texDims.y) {
+    let tex_dims = textureDimensions(tex);
+    if (id.x >= tex_dims.x || id.y >= tex_dims.y) {
         return;
     }
 

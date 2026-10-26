@@ -13,40 +13,50 @@ export const QuadObjectEditor: FC<Properties> = ({
   updateQuadObject,
 }) => {
   return (
-    <div className="bg-gray-200 p-2 border rounded-xl m-2">
-      <div className="flex justify-end gap-2">
-        <p
-          className="hover:cursor-pointer"
+    <div className="rounded-md border border-zinc-800 bg-zinc-900/60 p-2">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-xs font-medium text-zinc-300">
+          Quad {quadObject.id}
+        </span>
+        <button
+          type="button"
+          aria-label="Remove quad"
+          className="rounded px-1.5 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-100"
           onClick={() => {
             updateQuadObject(undefined);
           }}
         >
-          X
-        </p>
-        <p>Quad</p>
+          ×
+        </button>
       </div>
-      <div className="grid grid-cols-7">
-        <p>Position</p>
-        <VectorInput
-          value={quadObject.base}
-          onChange={(value) => {
-            updateQuadObject({ ...quadObject, base: value });
-          }}
-        />
-        <p>Side 1</p>
-        <VectorInput
-          value={quadObject.u}
-          onChange={(value) => {
-            updateQuadObject({ ...quadObject, u: value });
-          }}
-        />
-        <p>Side 2</p>
-        <VectorInput
-          value={quadObject.v}
-          onChange={(value) => {
-            updateQuadObject({ ...quadObject, v: value });
-          }}
-        />
+      <div className="grid gap-1.5">
+        <div className="flex items-center gap-2">
+          <span className="w-16 shrink-0 text-xs text-zinc-500">Position</span>
+          <VectorInput
+            value={quadObject.base}
+            onChange={(value) => {
+              updateQuadObject({ ...quadObject, base: value });
+            }}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-16 shrink-0 text-xs text-zinc-500">Side U</span>
+          <VectorInput
+            value={quadObject.u}
+            onChange={(value) => {
+              updateQuadObject({ ...quadObject, u: value });
+            }}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-16 shrink-0 text-xs text-zinc-500">Side V</span>
+          <VectorInput
+            value={quadObject.v}
+            onChange={(value) => {
+              updateQuadObject({ ...quadObject, v: value });
+            }}
+          />
+        </div>
       </div>
     </div>
   );
