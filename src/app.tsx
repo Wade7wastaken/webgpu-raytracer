@@ -110,7 +110,7 @@ const App: FC = () => {
   const sceneStale = useRef(false);
 
   useEffect(() => {
-    let isCanceled = false;
+    const canceledReference = { current: false };
     let rafId: number | undefined;
     let device: GPUDevice | undefined;
 
@@ -135,7 +135,7 @@ const App: FC = () => {
         requiredFeatures: hasBGRA8unormStorage ? ["bgra8unorm-storage"] : [],
       });
 
-      if (isCanceled) {
+      if (canceledReference.current) {
         newDevice.destroy();
         return;
       }
@@ -322,7 +322,11 @@ const App: FC = () => {
       let wasRunning = false;
 
       function render(now: DOMHighResTimeStamp): void {
-        if (isCanceled || device == undefined || context == undefined) {
+        if (
+          canceledReference.current ||
+          device == undefined ||
+          context == undefined
+        ) {
           return;
         }
 
@@ -343,7 +347,7 @@ const App: FC = () => {
 
             const error = await device.popErrorScope();
             if (
-              isCanceled ||
+              canceledReference.current ||
               compileVersion !== shaderCompileVersionReference.current
             ) {
               return;
@@ -367,10 +371,7 @@ const App: FC = () => {
               });
             } else {
               const info = await newModule.getCompilationInfo();
-              if (
-                isCanceled ||
-                compileVersion !== shaderCompileVersionReference.current
-              ) {
+              if (compileVersion !== shaderCompileVersionReference.current) {
                 return;
               }
               const message = info.messages
@@ -455,7 +456,8 @@ const App: FC = () => {
     void setupRenderer();
 
     return (): void => {
-      isCanceled = true;
+      canceledReference.current = true;
+      shaderCompileVersionReference.current += 1;
       if (rafId) {
         cancelAnimationFrame(rafId);
       }
@@ -565,7 +567,7 @@ const App: FC = () => {
 
   const updateMaterials = useCallback((patch: MaterialList): void => {
     const previousMaterials = materialsReference.current.materials;
-    const materialOrderChanged =
+    const hasMaterialOrderChanged =
       previousMaterials.length !== patch.materials.length ||
       patch.materials.some(
         (material, index) => previousMaterials[index]?.name !== material.name,
@@ -579,12 +581,14 @@ const App: FC = () => {
       patch,
       presentationFormatReference.current,
     );
-    if (materialOrderChanged) {
-      sceneTriangles.current = formatTriangles(
-        sceneObjectToTriangles(sceneReference.current, patch.materials),
-      );
-      sceneStale.current = true;
+    if (!hasMaterialOrderChanged) {
+      return;
     }
+
+    sceneTriangles.current = formatTriangles(
+      sceneObjectToTriangles(sceneReference.current, patch.materials),
+    );
+    sceneStale.current = true;
   }, []);
 
   return (
@@ -638,7 +642,7 @@ const App: FC = () => {
               {raysPerPixel}
             </span>
             <input
-              className="h-2 w-28 cursor-pointer appearance-none rounded-full bg-zinc-700 accent-zinc-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-500"
+              className="h-2 w-28 cursor-pointer appearance-none rounded-full bg-zinc-700 accent-zinc-300 focus-visible:outline-2 focus-visible:outline-zinc-500"
               type="range"
               min={1}
               max={100}
@@ -657,7 +661,7 @@ const App: FC = () => {
               {maxBounces}
             </span>
             <input
-              className="h-2 w-28 cursor-pointer appearance-none rounded-full bg-zinc-700 accent-zinc-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-500"
+              className="h-2 w-28 cursor-pointer appearance-none rounded-full bg-zinc-700 accent-zinc-300 focus-visible:outline-2 focus-visible:outline-zinc-500"
               type="range"
               min={1}
               max={100}

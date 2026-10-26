@@ -44,7 +44,7 @@ export const MaterialEditor: FC<Properties> = ({
     const selectedIndex = materials.materials.findIndex(
       (material) => material.name === selectedMaterial,
     );
-    if (selectedIndex < 0) {
+    if (selectedIndex === -1) {
       return;
     }
 
@@ -161,7 +161,7 @@ export const MaterialEditor: FC<Properties> = ({
             {statusLabel}
           </span>
         </div>
-        <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-3 font-mono text-xs leading-relaxed text-zinc-300">
+        <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap wrap-break-word p-3 font-mono text-xs leading-relaxed text-zinc-300">
           {compileResult.message}
         </pre>
       </section>

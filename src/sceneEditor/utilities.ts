@@ -136,20 +136,21 @@ export const remapSceneMaterials = (
   const fallbackMaterialName = materialNames[0];
 
   const resolveName = (materialName: string): string =>
-    materialNameSet.has(materialName) || fallbackMaterialName === undefined
+    fallbackMaterialName === undefined || materialNameSet.has(materialName)
       ? materialName
       : fallbackMaterialName;
 
   const remapObject = (object: SceneObject): SceneObject => {
     switch (object.type) {
       case "list": {
-        let isChanged = false;
         const children = object.children.map((child) => {
-          const updated = remapObject(child);
-          isChanged ||= updated !== child;
-          return updated;
+          return remapObject(child);
         });
-        return isChanged ? { ...object, children } : object;
+        return children.every(
+          (child, index) => child === object.children[index],
+        )
+          ? object
+          : { ...object, children };
       }
       case "quad": {
         const materialName = resolveName(object.materialName);
@@ -158,15 +159,17 @@ export const remapSceneMaterials = (
           : { ...object, materialName };
       }
       case "mesh": {
-        let isChanged = false;
         const triangles = object.triangles.map((triangle) => {
           const materialName = resolveName(triangle.materialName);
-          isChanged ||= materialName !== triangle.materialName;
           return materialName === triangle.materialName
             ? triangle
             : { ...triangle, materialName };
         });
-        return isChanged ? { ...object, triangles } : object;
+        return triangles.every(
+          (triangle, index) => triangle === object.triangles[index],
+        )
+          ? object
+          : { ...object, triangles };
       }
     }
   };
