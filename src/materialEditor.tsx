@@ -1,7 +1,7 @@
 import { Editor } from "@monaco-editor/react";
 import { useRef, useState, type FC } from "react";
 
-import type { MaterialList, ShaderCompileResult } from "./materials";
+import { defaultNewMaterial, type MaterialList, type ShaderCompileResult } from "./materials";
 
 type Properties = {
   materials: MaterialList;
@@ -31,7 +31,7 @@ export const MaterialEditor: FC<Properties> = ({
     }
     nextMaterialNumberReference.current = suffix + 1;
 
-    const material = { name, source: "" };
+    const material = { name, source: defaultNewMaterial };
     onMaterialsChange({ materials: [...materials.materials, material] });
     setSelectedMaterial(name);
   };
