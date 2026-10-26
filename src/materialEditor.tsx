@@ -1,7 +1,11 @@
 import { Editor } from "@monaco-editor/react";
-import { useRef, useState, type FC } from "react";
+import { useState, type FC } from "react";
 
-import { defaultNewMaterial, type MaterialList, type ShaderCompileResult } from "./materials";
+import {
+  defaultNewMaterial,
+  type MaterialList,
+  type ShaderCompileResult,
+} from "./materials";
 
 type Properties = {
   materials: MaterialList;
@@ -17,19 +21,33 @@ export const MaterialEditor: FC<Properties> = ({
   const [selectedMaterial, setSelectedMaterial] = useState(
     materials.materials[0]?.name ?? "",
   );
-  const nextMaterialNumberReference = useRef(materials.materials.length + 1);
   const selected = materials.materials.find(
     (material) => material.name === selectedMaterial,
   );
 
   const addMaterial = (): void => {
-    let suffix = nextMaterialNumberReference.current;
-    let name = `Material ${suffix}`;
-    while (materials.materials.some((material) => material.name === name)) {
-      suffix += 1;
-      name = `Material ${suffix}`;
+    let name: string | undefined | null;
+    const shouldTryAgain = (name: string | undefined | null): boolean => {
+      if (name == undefined) {
+        alert("You must enter a material name.");
+        return true;
+      }
+      const isTaken = materials.materials.some(
+        (material) => material.name === name,
+      );
+      if (isTaken) {
+        alert("Material names must be unique.");
+      }
+      return isTaken;
+    };
+
+    do {
+      name = prompt("Enter a name for the material:");
+    } while (shouldTryAgain(name));
+
+    if (name === "" || name == undefined) {
+      name = "Material";
     }
-    nextMaterialNumberReference.current = suffix + 1;
 
     const material = { name, source: defaultNewMaterial };
     onMaterialsChange({ materials: [...materials.materials, material] });

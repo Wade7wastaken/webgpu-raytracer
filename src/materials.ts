@@ -27,7 +27,6 @@ const formatMaterialSource = (source: string): string => {
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line !== "" && !line.startsWith("//"));
-  console.log(lines);
   const first = lines[0];
   const last = lines.at(-1);
   if (first === undefined || last === undefined) {
@@ -63,7 +62,7 @@ export const defaultNewMaterial = `fn scatter(point: vec3f, normal: vec3f, ray_t
 export const initialMaterials: MaterialList = {
   materials: [
     {
-      name: "lambertian",
+      name: "Lambertian",
       source: `// Edit your material's scatter function here!
 // Make sure you don't change the function's signature.
 
@@ -83,7 +82,7 @@ fn scatter(point: vec3f, normal: vec3f, ray_time: f32, mat_data: f32) {
 }`,
     },
     {
-      name: "light",
+      name: "Emissive",
       source: `fn scatter(point: vec3f, normal: vec3f, ray_time: f32, mat_data: f32) {
     return ray_color * vec3f(1.0, 193.0 / 255.0, 104.0 / 255.0) * 15f;
 }`,

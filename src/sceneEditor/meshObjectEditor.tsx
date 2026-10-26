@@ -98,10 +98,6 @@ export const MeshObjectEditor: FC<Properties> = ({
                 updateMeshObject({
                   ...meshObject,
                   materialName,
-                  triangles: meshObject.triangles.map((triangle) => ({
-                    ...triangle,
-                    materialName,
-                  })),
                 });
               }}
             >
