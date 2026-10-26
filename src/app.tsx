@@ -172,9 +172,6 @@ const App: FC = () => {
           GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
       });
 
-      console.log(presentationFormatReference.current);
-      console.log(context.getConfiguration()?.viewFormats);
-
       let module = device.createShaderModule({
         code: shaderSourceReference.current,
       });
@@ -607,7 +604,7 @@ const App: FC = () => {
           <button
             type="button"
             aria-pressed={isRunning}
-            className={`rounded px-2 py-1 text-xs font-medium ${isRunning ? "bg-zinc-800 text-zinc-400" : "bg-zinc-200 text-zinc-950 hover:bg-white hover:cursor-pointer"}`}
+            className={`rounded px-2 py-1 text-xs font-medium ${isRunning ? "bg-zinc-800 text-zinc-400" : "bg-zinc-200 text-zinc-950 hover:cursor-pointer hover:bg-white"}`}
             onClick={() => {
               isRunningReference.current = true;
               setIsRunning(true);
@@ -618,7 +615,7 @@ const App: FC = () => {
           <button
             type="button"
             aria-pressed={!isRunning}
-            className={`rounded px-2 py-1 text-xs font-medium ${isRunning ? "bg-zinc-200 text-zinc-950 hover:bg-white hover:cursor-pointer" : "bg-zinc-800 text-zinc-400"}`}
+            className={`rounded px-2 py-1 text-xs font-medium ${isRunning ? "bg-zinc-200 text-zinc-950 hover:cursor-pointer hover:bg-white" : "bg-zinc-800 text-zinc-400"}`}
             onClick={() => {
               isRunningReference.current = false;
               setIsRunning(false);
@@ -682,25 +679,25 @@ const App: FC = () => {
       </header>
 
       <div className="flex min-h-0 grow basis-3/5 gap-2">
-        <section className="min-h-0 min-w-0 basis-2/3 rounded-md border border-zinc-800 bg-zinc-900 p-2 flex justify-center-safe items-center-safe">
-            <canvas
-              ref={canvasReference}
-              className="block max-h-full max-w-full rounded border border-zinc-700 bg-black object-contain"
-              width={(720 * 16) / 9}
-              height={720}
-              onClick={() => {
-                void (async (): Promise<void> => {
-                  if (
-                    !document.pointerLockElement &&
-                    canvasReference.current != undefined
-                  ) {
-                    await canvasReference.current.requestPointerLock({
-                      // unadjustedMovement: true,
-                    });
-                  }
-                })();
-              }}
-            ></canvas>
+        <section className="flex min-h-0 min-w-0 basis-2/3 items-center-safe justify-center-safe rounded-md border border-zinc-800 bg-zinc-900 p-2">
+          <canvas
+            ref={canvasReference}
+            className="block max-h-full max-w-full rounded border border-zinc-700 bg-black object-contain"
+            width={(720 * 16) / 9}
+            height={720}
+            onClick={() => {
+              void (async (): Promise<void> => {
+                if (
+                  !document.pointerLockElement &&
+                  canvasReference.current != undefined
+                ) {
+                  await canvasReference.current.requestPointerLock({
+                    // unadjustedMovement: true,
+                  });
+                }
+              })();
+            }}
+          ></canvas>
         </section>
 
         <section className="min-h-0 min-w-0 basis-1/3 overflow-hidden rounded-md border border-zinc-800 bg-zinc-900 p-2">

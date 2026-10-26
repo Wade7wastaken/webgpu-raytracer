@@ -51,7 +51,7 @@ export const NumberInput: FC<Properties> = ({ value, onChange }) => {
 
         const newValue = value + event.movementX / 100;
         onChange(newValue);
-        setStringValue(Number(newValue.toFixed(4)).toString())
+        setStringValue(Number(newValue.toFixed(4)).toString());
         setIsDragged(true);
       }}
     />
