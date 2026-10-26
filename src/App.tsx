@@ -478,6 +478,10 @@ const App: FC = () => {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
+      if (!isRunningReference.current || document.pointerLockElement == undefined) {
+        return;
+      }
+      let shouldPreventDefault = true;
       switch (event.key.toLowerCase()) {
         case "w": {
           keysReference.current.W = true;
@@ -496,9 +500,6 @@ const App: FC = () => {
           break;
         }
         case " ": {
-          if (document.pointerLockElement != undefined) {
-            event.preventDefault();
-          }
           keysReference.current.Space = true;
           break;
         }
@@ -506,10 +507,22 @@ const App: FC = () => {
           keysReference.current.Shift = true;
           break;
         }
+        default: {
+          shouldPreventDefault = false;
+          break;
+        }
+      }
+
+      if (shouldPreventDefault) {
+        event.preventDefault();
       }
     };
 
     const onKeyUp = (event: KeyboardEvent): void => {
+      if (!isRunningReference.current || document.pointerLockElement == undefined) {
+        return;
+      }
+      let shouldPreventDefault = true;
       switch (event.key.toLowerCase()) {
         case "w": {
           keysReference.current.W = false;
@@ -535,6 +548,13 @@ const App: FC = () => {
           keysReference.current.Shift = false;
           break;
         }
+        default: {
+          shouldPreventDefault = false;
+          break;
+        }
+      }
+      if (shouldPreventDefault) {
+        event.preventDefault();
       }
     };
 
@@ -688,6 +708,7 @@ const App: FC = () => {
             onClick={() => {
               void (async (): Promise<void> => {
                 if (
+                  isRunningReference.current &&
                   !document.pointerLockElement &&
                   canvasReference.current != undefined
                 ) {
