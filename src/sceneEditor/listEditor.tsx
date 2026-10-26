@@ -132,14 +132,12 @@ export const ListObjectEditor: FC<ListProperties> = ({
         <button
           type="button"
           aria-label={isExpanded ? "Collapse group" : "Expand group"}
-          className="w-5 rounded text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+          className="w-5 rounded text-zinc-400 hover:cursor-pointer hover:bg-zinc-800 hover:text-zinc-100"
           onClick={() => {
             setIsExpanded((expanded) => !expanded);
           }}
         >
-          <span
-            className={isExpanded ? "inline-block rotate-90" : "inline-block"}
-          >
+          <span className={`size-5 inline-block  ${isExpanded ? "rotate-90 -translate-x-0.5" : ""}`}>
             ▸
           </span>
         </button>
@@ -147,7 +145,7 @@ export const ListObjectEditor: FC<ListProperties> = ({
           {isRoot ? "Scene" : `Collection ${listObject.id}`}
         </span>
         <Dropdown
-          text="+ Add"
+          text="+"
           options={["Quad", "Collection", "Import OBJ"]}
           onSelect={(option) => {
             switch (option) {
@@ -191,7 +189,7 @@ export const ListObjectEditor: FC<ListProperties> = ({
         <button
           type="button"
           aria-label={isRoot ? "Clear scene" : "Remove collection"}
-          className="rounded px-1.5 py-0.5 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-100"
+          className="size-5 rounded text-sm text-zinc-300 hover:cursor-pointer hover:bg-zinc-700"
           onClick={() => {
             updateListObject(undefined);
           }}
@@ -207,7 +205,7 @@ export const ListObjectEditor: FC<ListProperties> = ({
       {isExpanded && (
         <div
           className={
-            isRoot ? "min-h-0 flex-1 overflow-y-auto pb-1" : "space-y-1 pb-1"
+            isRoot ? "min-h-0 flex-1 overflow-y-auto pb-1 space-y-1" : "space-y-1 pb-1"
           }
         >
           {listObject.children.map((child, index) => (

@@ -74,9 +74,9 @@ export const MaterialEditor: FC<Properties> = ({
 
   return (
     <div className="flex h-full min-h-0 gap-2">
-      <section className="flex min-h-0 min-w-32 basis-1/6 flex-col overflow-hidden rounded-md border border-zinc-800 bg-zinc-950/50">
-        <div className="flex h-9 shrink-0 items-center justify-between border-b border-zinc-800 px-2">
-          <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">
+      <section className="flex min-h-0 min-w-32 basis-1/6 flex-col overflow-hidden rounded-md border border-zinc-800 bg-zinc-950">
+        <div className="flex h-8 shrink-0 items-center justify-between border-b border-zinc-800 px-2">
+          <h2 className="text-xs font-medium tracking-wide text-zinc-400">
             Materials
           </h2>
           <div className="flex items-center gap-1">
@@ -84,7 +84,7 @@ export const MaterialEditor: FC<Properties> = ({
               type="button"
               aria-label="Add material"
               title="Add material"
-              className="size-7 rounded border border-zinc-700 bg-zinc-800 text-sm text-zinc-200 hover:bg-zinc-700"
+              className="size-5 rounded text-sm text-zinc-200 hover:cursor-pointer hover:bg-zinc-700"
               onClick={addMaterial}
             >
               +
@@ -94,7 +94,7 @@ export const MaterialEditor: FC<Properties> = ({
               aria-label="Delete selected material"
               title="Delete selected material"
               disabled={materials.materials.length <= 1}
-              className="size-7 rounded border border-zinc-700 bg-zinc-800 text-sm text-zinc-300 hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="size-5 rounded text-sm text-zinc-300 hover:cursor-pointer hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
               onClick={deleteMaterial}
             >
               ×
@@ -109,7 +109,7 @@ export const MaterialEditor: FC<Properties> = ({
                 key={material.name}
                 type="button"
                 aria-pressed={isSelected}
-                className={`w-full truncate rounded px-2 py-1.5 text-left text-xs ${isSelected ? "bg-zinc-800 text-zinc-100" : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"}`}
+                className={`w-full truncate rounded px-2 py-1.5 text-left text-xs ${isSelected ? "bg-zinc-800 text-zinc-100" : "text-zinc-400 hover:cursor-pointer hover:bg-zinc-900 hover:text-zinc-200"}`}
                 onClick={() => {
                   setSelectedMaterial(material.name);
                 }}
@@ -150,10 +150,12 @@ export const MaterialEditor: FC<Properties> = ({
         />
       </section>
 
-      <section className="flex min-h-0 min-w-40 basis-1/4 flex-col overflow-hidden rounded-md border border-zinc-800 bg-zinc-950/50">
-        <div className="flex h-9 shrink-0 items-center justify-between border-b border-zinc-800 px-3">
-          <h2 className="text-xs font-medium tracking-wide text-zinc-400 uppercase">
-            Shader compile
+      <section
+        className={`flex min-h-0 min-w-40 flex-col overflow-hidden rounded-md border border-zinc-800 bg-zinc-950 ${compileResult.status === "failed" ? "basis-1/4" : "basis-1/6"}`}
+      >
+        <div className="flex h-8 shrink-0 items-center justify-between border-b border-zinc-800 px-3">
+          <h2 className="text-xs font-medium tracking-wide text-zinc-400">
+            Shader status
           </h2>
           <span
             className={`rounded px-2 py-1 text-xs font-semibold tracking-wide ${statusClass}`}

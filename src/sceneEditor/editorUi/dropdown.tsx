@@ -18,7 +18,7 @@ export const Dropdown = <Item extends string>({
       <button
         type="button"
         aria-expanded={isOpen}
-        className="rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-xs text-zinc-200 hover:bg-zinc-700"
+        className="size-5 rounded text-sm text-zinc-200 hover:cursor-pointer hover:bg-zinc-700"
         onClick={() => {
           setIsOpen((isOpen) => !isOpen);
         }}

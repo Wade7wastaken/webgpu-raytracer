@@ -12,7 +12,7 @@ type Properties = {
 export const VectorInput: FC<Properties> = ({ value, onChange }) => {
   return (
     <div className="grid min-w-0 flex-1 grid-cols-3 gap-1">
-      <label className="flex min-w-0 items-center gap-1 text-xs text-zinc-500">
+      <label className="flex min-w-0 items-center gap-1 text-xs text-zinc-500 justify-center-safe">
         X
         <NumberInput
           value={value.x}
@@ -21,7 +21,7 @@ export const VectorInput: FC<Properties> = ({ value, onChange }) => {
           }}
         />
       </label>
-      <label className="flex min-w-0 items-center gap-1 text-xs text-zinc-500">
+      <label className="flex min-w-0 items-center gap-1 text-xs text-zinc-500 justify-center-safe">
         Y
         <NumberInput
           value={value.y}
@@ -30,7 +30,7 @@ export const VectorInput: FC<Properties> = ({ value, onChange }) => {
           }}
         />
       </label>
-      <label className="flex min-w-0 items-center gap-1 text-xs text-zinc-500">
+      <label className="flex min-w-0 items-center gap-1 text-xs text-zinc-500 justify-center-safe">
         Z
         <NumberInput
           value={value.z}

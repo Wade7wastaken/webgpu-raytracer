@@ -13,7 +13,7 @@ export const QuadObjectEditor: FC<Properties> = ({
   updateQuadObject,
 }) => {
   return (
-    <div className="rounded-md border border-zinc-800 bg-zinc-900/60 p-2">
+    <div className="rounded-md border border-zinc-800 bg-zinc-900 p-2">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-medium text-zinc-300">
           Quad {quadObject.id}
@@ -21,7 +21,7 @@ export const QuadObjectEditor: FC<Properties> = ({
         <button
           type="button"
           aria-label="Remove quad"
-          className="rounded px-1.5 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-100"
+          className="size-5 rounded text-sm text-zinc-300 hover:cursor-pointer hover:bg-zinc-700"
           onClick={() => {
             updateQuadObject(undefined);
           }}

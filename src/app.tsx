@@ -594,12 +594,12 @@ const App: FC = () => {
 
   return (
     <div className="flex h-dvh flex-col gap-2 overflow-hidden bg-zinc-950 p-3 text-zinc-100 scheme-dark">
-      <header className="flex h-14 shrink-0 items-center gap-4 rounded-md border border-zinc-800 bg-zinc-900 px-3">
-        <div className="flex items-center gap-1">
+      <header className="flex h-12 items-center gap-12 rounded-md border border-zinc-800 bg-zinc-900 px-3">
+        <div className="flex gap-2">
           <button
             type="button"
             aria-pressed={isRunning}
-            className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${isRunning ? "bg-zinc-800 text-zinc-400" : "bg-zinc-200 text-zinc-950 hover:bg-white"}`}
+            className={`rounded px-2 py-1 text-xs font-medium ${isRunning ? "bg-zinc-800 text-zinc-400" : "bg-zinc-200 text-zinc-950 hover:bg-white hover:cursor-pointer"}`}
             onClick={() => {
               isRunningReference.current = true;
               setIsRunning(true);
@@ -610,7 +610,7 @@ const App: FC = () => {
           <button
             type="button"
             aria-pressed={!isRunning}
-            className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${isRunning ? "bg-zinc-200 text-zinc-950 hover:bg-white" : "bg-zinc-800 text-zinc-400"}`}
+            className={`rounded px-2 py-1 text-xs font-medium ${isRunning ? "bg-zinc-200 text-zinc-950 hover:bg-white hover:cursor-pointer" : "bg-zinc-800 text-zinc-400"}`}
             onClick={() => {
               isRunningReference.current = false;
               setIsRunning(false);
@@ -620,23 +620,14 @@ const App: FC = () => {
           </button>
         </div>
 
-        <div className="flex min-w-28 items-center gap-2 border-l border-zinc-700 pl-4">
-          <span
-            className={`size-2 rounded-full ${isRunning ? "bg-zinc-200" : "bg-zinc-600"}`}
-          />
-          <span className="text-xs text-zinc-300">
-            {isRunning ? "Running" : "Stopped"}
-          </span>
-        </div>
-
-        <div className="flex min-w-28 items-center gap-2 border-l border-zinc-700 pl-4 text-xs">
-          <span className="text-zinc-500">FPS</span>
-          <span className="w-16 text-right font-mono text-zinc-200 tabular-nums">
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-zinc-400">FPS</span>
+          <span className="w-10 text-right font-mono text-zinc-200 tabular-nums">
             {fps.toFixed(2)}
           </span>
         </div>
 
-        <div className="ml-auto flex items-center gap-5">
+        <div className="flex items-center gap-4">
           <label className="flex items-center gap-2 text-xs">
             <span className="whitespace-nowrap text-zinc-400">
               Rays / pixel
@@ -683,11 +674,7 @@ const App: FC = () => {
       </header>
 
       <div className="flex min-h-0 grow basis-3/5 gap-2">
-        <section className="flex min-h-0 min-w-0 basis-2/3 flex-col rounded-md border border-zinc-800 bg-zinc-900 p-2">
-          <div className="flex h-7 shrink-0 items-center px-1 text-xs font-medium tracking-wide text-zinc-500 uppercase">
-            Viewport
-          </div>
-          <div className="grid min-h-0 flex-1 place-items-center overflow-hidden">
+        <section className="min-h-0 min-w-0 basis-2/3 rounded-md border border-zinc-800 bg-zinc-900 p-2 flex justify-center-safe items-center-safe">
             <canvas
               ref={canvasReference}
               className="block max-h-full max-w-full rounded border border-zinc-700 bg-black object-contain"
@@ -706,7 +693,6 @@ const App: FC = () => {
                 })();
               }}
             ></canvas>
-          </div>
         </section>
 
         <section className="min-h-0 min-w-0 basis-1/3 overflow-hidden rounded-md border border-zinc-800 bg-zinc-900 p-2">

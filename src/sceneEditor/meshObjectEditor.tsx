@@ -19,7 +19,7 @@ export const MeshObjectEditor: FC<Properties> = ({
     .multiplyScalar(MathUtils.RAD2DEG);
 
   return (
-    <div className="rounded-md border border-zinc-800 bg-zinc-900/60 p-2">
+    <div className="rounded-md border border-zinc-800 bg-zinc-900 p-2">
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="min-w-0 truncate text-xs font-medium text-zinc-300">
           {objObject.name}
