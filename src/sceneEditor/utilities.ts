@@ -62,6 +62,8 @@ export type MeshSceneObject = BaseSceneObject & {
   name: string;
   triangles: Triangle[];
   transform: Transform;
+  materialName: string;
+  colorIndex: number;
 };
 
 export type SceneObject = QuadSceneObject | ListSceneObject | MeshSceneObject;

@@ -2,6 +2,7 @@ import { ListObjectEditor } from "./listEditor";
 import { MeshObjectEditor } from "./meshObjectEditor";
 import { QuadObjectEditor } from "./quadEditor";
 
+import type { MaterialList } from "../materials";
 import type { SceneObject } from "./utilities";
 import type { Dispatch, FC, SetStateAction } from "react";
 
@@ -10,6 +11,7 @@ type Properties = {
   updateSceneObject: (patch: SceneObject | undefined) => void;
   nextId: number;
   setNextId: Dispatch<SetStateAction<number>>;
+  materials: MaterialList;
   defaultMaterialName: string;
 };
 
@@ -18,6 +20,7 @@ export const ObjectEditor: FC<Properties> = ({
   updateSceneObject,
   nextId,
   setNextId,
+  materials,
   defaultMaterialName,
 }) => {
   switch (sceneObject.type) {
@@ -30,6 +33,7 @@ export const ObjectEditor: FC<Properties> = ({
           }}
           nextId={nextId}
           setNextId={setNextId}
+          materials={materials}
           defaultMaterialName={defaultMaterialName}
         />
       );
@@ -41,16 +45,18 @@ export const ObjectEditor: FC<Properties> = ({
           updateQuadObject={(patch) => {
             updateSceneObject(patch);
           }}
+          materials={materials}
         />
       );
     }
     case "mesh": {
       return (
         <MeshObjectEditor
-          objObject={sceneObject}
-          updateObjObject={(patch) => {
+          meshObject={sceneObject}
+          updateMeshObject={(patch) => {
             updateSceneObject(patch);
           }}
+          materials={materials}
         />
       );
     }

@@ -118,6 +118,7 @@ export const MainEditor: FC<Properties> = ({
         }}
         nextId={nextId}
         setNextId={setNextId}
+        materials={materials}
         defaultMaterialName={materials.materials[0]?.name ?? "lambertian"}
       />
     </div>

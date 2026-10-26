@@ -1,20 +1,24 @@
 import { MathUtils } from "three";
 
+import { NumberInput } from "./editorUi/numberInput";
 import { VectorInput } from "./editorUi/vectorInput";
 
 import type { MeshSceneObject } from "./utilities";
+import type { MaterialList } from "../materials";
 import type { FC } from "react";
 
 type Properties = {
-  objObject: MeshSceneObject;
-  updateObjObject: (patch: MeshSceneObject | undefined) => void;
+  meshObject: MeshSceneObject;
+  updateMeshObject: (patch: MeshSceneObject | undefined) => void;
+  materials: MaterialList;
 };
 
 export const MeshObjectEditor: FC<Properties> = ({
-  objObject,
-  updateObjObject,
+  meshObject,
+  updateMeshObject,
+  materials,
 }) => {
-  const rotationDegrees = objObject.transform.rotation
+  const rotationDegrees = meshObject.transform.rotation
     .clone()
     .multiplyScalar(MathUtils.RAD2DEG);
 
@@ -22,58 +26,83 @@ export const MeshObjectEditor: FC<Properties> = ({
     <div className="rounded-md border border-zinc-800 bg-zinc-900 p-2">
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="min-w-0 truncate text-xs font-medium text-zinc-300">
-          {objObject.name}
+          {meshObject.name}
         </span>
         <button
           type="button"
-          aria-label={`Remove ${objObject.name}`}
-          className="rounded px-1.5 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-100"
+          aria-label={`Remove ${meshObject.name}`}
+          className="size-5 rounded text-sm text-zinc-300 hover:cursor-pointer hover:bg-zinc-700"
           onClick={() => {
-            updateObjObject(undefined);
+            updateMeshObject(undefined);
           }}
         >
           ×
         </button>
       </div>
-      <div className="grid gap-1.5">
-        <div className="flex items-center gap-2">
-          <span className="w-16 shrink-0 text-xs text-zinc-500">Position</span>
-          <VectorInput
-            value={objObject.transform.position}
-            onChange={(position) => {
-              updateObjObject({
-                ...objObject,
-                transform: { ...objObject.transform, position },
-              });
-            }}
-          />
+
+      <div className="flex">
+        <div className="grid grow gap-1.5">
+          <div className="flex items-center gap-2">
+            <span className="w-16 shrink-0 text-xs text-zinc-500">
+              Position
+            </span>
+            <VectorInput
+              value={meshObject.transform.position}
+              onChange={(position) => {
+                updateMeshObject({
+                  ...meshObject,
+                  transform: { ...meshObject.transform, position },
+                });
+              }}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-16 shrink-0 text-xs text-zinc-500">Scale</span>
+            <VectorInput
+              value={meshObject.transform.scale}
+              onChange={(scale) => {
+                updateMeshObject({
+                  ...meshObject,
+                  transform: { ...meshObject.transform, scale },
+                });
+              }}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-16 shrink-0 text-xs text-zinc-500">
+              Rotation
+            </span>
+            <VectorInput
+              value={rotationDegrees}
+              onChange={(degrees) => {
+                updateMeshObject({
+                  ...meshObject,
+                  transform: {
+                    ...meshObject.transform,
+                    rotation: degrees.multiplyScalar(MathUtils.DEG2RAD),
+                  },
+                });
+              }}
+            />
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="w-16 shrink-0 text-xs text-zinc-500">Scale</span>
-          <VectorInput
-            value={objObject.transform.scale}
-            onChange={(scale) => {
-              updateObjObject({
-                ...objObject,
-                transform: { ...objObject.transform, scale },
-              });
-            }}
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-16 shrink-0 text-xs text-zinc-500">Rotation</span>
-          <VectorInput
-            value={rotationDegrees}
-            onChange={(degrees) => {
-              updateObjObject({
-                ...objObject,
-                transform: {
-                  ...objObject.transform,
-                  rotation: degrees.multiplyScalar(MathUtils.DEG2RAD),
-                },
-              });
-            }}
-          />
+
+        <div className="flex flex-col">
+          <p>Material:</p>
+          <select>
+            {materials.materials.map((m) => (
+              <option key={m.name}>{m.name}</option>
+            ))}
+          </select>
+          <label>
+            data
+            <NumberInput
+              value={meshObject.colorIndex}
+              onChange={(value) => {
+                updateMeshObject({ ...meshObject, colorIndex: value });
+              }}
+            />
+          </label>
         </div>
       </div>
     </div>

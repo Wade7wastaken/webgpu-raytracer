@@ -10,6 +10,7 @@ import {
   type Triangle,
 } from "./utilities";
 
+import type { MaterialList } from "../materials";
 import type { Dispatch, FC, SetStateAction } from "react";
 import type { Object3D } from "three";
 
@@ -18,6 +19,7 @@ type ListProperties = {
   updateListObject: (patch: ListSceneObject | undefined) => void;
   nextId: number;
   setNextId: Dispatch<SetStateAction<number>>;
+  materials: MaterialList;
   defaultMaterialName: string;
 };
 
@@ -30,6 +32,7 @@ export const ListObjectEditor: FC<ListProperties> = ({
   updateListObject,
   nextId,
   setNextId,
+  materials,
   defaultMaterialName,
 }) => {
   const fileInputReference = useRef<HTMLInputElement>(null);
@@ -97,6 +100,8 @@ export const ListObjectEditor: FC<ListProperties> = ({
               scale: new Vector3(1, 1, 1),
             },
             enabled: true,
+            materialName: defaultMaterialName,
+            colorIndex: 0,
           },
           nextId,
           setNextId,
@@ -137,7 +142,9 @@ export const ListObjectEditor: FC<ListProperties> = ({
             setIsExpanded((expanded) => !expanded);
           }}
         >
-          <span className={`size-5 inline-block  ${isExpanded ? "rotate-90 -translate-x-0.5" : ""}`}>
+          <span
+            className={`inline-block size-5 ${isExpanded ? "-translate-x-0.5 rotate-90" : ""}`}
+          >
             ▸
           </span>
         </button>
@@ -205,7 +212,9 @@ export const ListObjectEditor: FC<ListProperties> = ({
       {isExpanded && (
         <div
           className={
-            isRoot ? "min-h-0 flex-1 overflow-y-auto pb-1 space-y-1" : "space-y-1 pb-1"
+            isRoot
+              ? "min-h-0 flex-1 space-y-1 overflow-y-auto pb-1"
+              : "space-y-1 pb-1"
           }
         >
           {listObject.children.map((child, index) => (
@@ -224,6 +233,7 @@ export const ListObjectEditor: FC<ListProperties> = ({
               }}
               nextId={nextId}
               setNextId={setNextId}
+              materials={materials}
               defaultMaterialName={defaultMaterialName}
             />
           ))}
