@@ -687,6 +687,27 @@ const App: FC = () => {
           >
             Stop
           </button>
+          <a
+            className="rounded bg-zinc-200 px-2 py-1 text-xs font-medium text-zinc-950 hover:cursor-pointer hover:bg-white"
+            download="image.png"
+            href="#"
+            onClick={(event) => {
+              if (canvasReference.current == undefined) {
+                return;
+              }
+              const data = canvasReference.current.toDataURL();
+
+              // https://stackoverflow.com/questions/12796513/html5-canvas-to-png-file
+              // Change MIME type to trick the browser to downlaod the file instead of displaying it
+              // In addition to <a>'s "download" attribute, you can define HTTP-style headers
+              event.currentTarget.href = data.replace(
+                /^data:image\/[^;]*/,
+                "data:application/octet-stream;headers=Content-Disposition%3A%20attachment%3B%20filename=image.png",
+              );
+            }}
+          >
+            Save
+          </a>
         </div>
 
         <div className="flex items-center gap-2 text-xs">
@@ -714,7 +735,6 @@ const App: FC = () => {
               onChange={(event) => {
                 const value = Number.parseInt(event.target.value);
                 raysPerPixelReference.current = value;
-                accumulationResetReference.current = true;
                 setRaysPerPixel(value);
               }}
             />
