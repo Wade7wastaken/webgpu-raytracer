@@ -1,3 +1,5 @@
+import { Euler, Matrix4, Quaternion } from "three";
+
 import type { Dispatch, SetStateAction } from "react";
 import type { Vector3 } from "three";
 
@@ -48,10 +50,18 @@ export type ListSceneObject = BaseSceneObject & {
   children: SceneObject[];
 };
 
-export type SceneObject = QuadSceneObject | ListSceneObject;
+export type MeshSceneObject = BaseSceneObject & {
+  type: "mesh";
+  name: string;
+  triangles: Triangle[];
+  transform: Transform;
+};
+
+export type SceneObject = QuadSceneObject | ListSceneObject | MeshSceneObject;
 export type SceneObjectNoId =
   | Omit<QuadSceneObject, "id">
-  | Omit<ListSceneObject, "id">;
+  | Omit<ListSceneObject, "id">
+  | Omit<MeshSceneObject, "id">;
 
 export const sceneObjectToTriangles = (
   sceneObject: SceneObject,
@@ -79,6 +89,24 @@ export const sceneObjectToTriangles = (
           colorIndex: sceneObject.colorIndex,
         },
       ];
+    }
+    case "mesh": {
+      const { position, rotation, scale } = sceneObject.transform;
+      const transform = new Matrix4().compose(
+        position,
+        new Quaternion().setFromEuler(
+          new Euler(rotation.x, rotation.y, rotation.z, "XYZ"),
+        ),
+        scale,
+      );
+
+      return sceneObject.triangles.map((triangle) => ({
+        vertices: triangle.vertices.map((vertex) =>
+          vertex.clone().applyMatrix4(transform),
+        ) as [Vector3, Vector3, Vector3],
+        materialIndex: triangle.materialIndex,
+        colorIndex: triangle.colorIndex,
+      }));
     }
   }
 };

@@ -1,4 +1,5 @@
 import { ListObjectEditor } from "./listEditor";
+import { MeshObjectEditor } from "./meshObjectEditor";
 import { QuadObjectEditor } from "./quadEditor";
 
 import type { SceneObject } from "./utilities";
@@ -17,7 +18,6 @@ export const ObjectEditor: FC<Properties> = ({
   nextId,
   setNextId,
 }) => {
-  console.log(sceneObject);
   switch (sceneObject.type) {
     case "list": {
       return (
@@ -36,6 +36,16 @@ export const ObjectEditor: FC<Properties> = ({
         <QuadObjectEditor
           quadObject={sceneObject}
           updateQuadObject={(patch) => {
+            updateSceneObject(patch);
+          }}
+        />
+      );
+    }
+    case "mesh": {
+      return (
+        <MeshObjectEditor
+          objObject={sceneObject}
+          updateObjObject={(patch) => {
             updateSceneObject(patch);
           }}
         />
