@@ -11,7 +11,7 @@ type Properties = {
   materials: MaterialList;
 };
 
-export const QuadObjectEditor: FC<Properties> = ({
+export const QuadEditor: FC<Properties> = ({
   quadObject,
   updateQuadObject,
   materials,

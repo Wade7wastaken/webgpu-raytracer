@@ -1,6 +1,6 @@
-import { ListObjectEditor } from "./ListEditor";
-import { MeshObjectEditor } from "./MeshEditor";
-import { QuadObjectEditor } from "./QuadEditor";
+import { ListEditor } from "./ListEditor";
+import { MeshEditor } from "./MeshEditor";
+import { QuadEditor } from "./QuadEditor";
 
 import type { MaterialList } from "../materials";
 import type { SceneObject } from "./utilities";
@@ -26,7 +26,7 @@ export const ObjectEditor: FC<Properties> = ({
   switch (sceneObject.type) {
     case "list": {
       return (
-        <ListObjectEditor
+        <ListEditor
           listObject={sceneObject}
           updateListObject={(patch) => {
             updateSceneObject(patch);
@@ -40,7 +40,7 @@ export const ObjectEditor: FC<Properties> = ({
     }
     case "quad": {
       return (
-        <QuadObjectEditor
+        <QuadEditor
           quadObject={sceneObject}
           updateQuadObject={(patch) => {
             updateSceneObject(patch);
@@ -51,7 +51,7 @@ export const ObjectEditor: FC<Properties> = ({
     }
     case "mesh": {
       return (
-        <MeshObjectEditor
+        <MeshEditor
           meshObject={sceneObject}
           updateMeshObject={(patch) => {
             updateSceneObject(patch);

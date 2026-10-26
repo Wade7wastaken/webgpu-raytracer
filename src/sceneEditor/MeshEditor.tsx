@@ -13,7 +13,7 @@ type Properties = {
   materials: MaterialList;
 };
 
-export const MeshObjectEditor: FC<Properties> = ({
+export const MeshEditor: FC<Properties> = ({
   meshObject,
   updateMeshObject,
   materials,

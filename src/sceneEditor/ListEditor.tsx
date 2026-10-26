@@ -10,7 +10,7 @@ import type { MaterialList } from "../materials";
 import type { Dispatch, FC, SetStateAction } from "react";
 import type { Object3D } from "three";
 
-type ListProperties = {
+type Properties = {
   listObject: ListSceneObject;
   updateListObject: (patch: ListSceneObject | undefined) => void;
   nextId: number;
@@ -23,7 +23,7 @@ type ListProperties = {
 const isMeshObject = (object: Object3D): object is Mesh =>
   object instanceof Mesh;
 
-export const ListObjectEditor: FC<ListProperties> = ({
+export const ListEditor: FC<Properties> = ({
   listObject,
   updateListObject,
   nextId,

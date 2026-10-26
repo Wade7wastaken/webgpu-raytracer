@@ -9,7 +9,7 @@ import {
   type MaterialList,
   type ShaderCompileResult,
 } from "./materials";
-import { MainEditor } from "./sceneEditor/SceneEditor";
+import { SceneEditor } from "./sceneEditor/SceneEditor";
 import {
   sceneObjectToTriangles,
   type SceneObject,
@@ -701,7 +701,7 @@ const App: FC = () => {
         </section>
 
         <section className="min-h-0 min-w-0 basis-1/3 overflow-hidden rounded-md border border-zinc-800 bg-zinc-900 p-2">
-          <MainEditor
+          <SceneEditor
             materials={materials}
             setSceneReference={updateSceneReference}
           />

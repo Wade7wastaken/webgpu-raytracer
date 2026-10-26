@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FC } from "react";
 import { Vector3 } from "three";
 
-import { ListObjectEditor } from "./ListEditor";
+import { ListEditor } from "./ListEditor";
 import {
   remapSceneMaterials,
   type ListSceneObject,
@@ -88,7 +88,7 @@ const createInitialRootObject = (): ListSceneObject => ({
   })),
 });
 
-export const MainEditor: FC<Properties> = ({
+export const SceneEditor: FC<Properties> = ({
   materials,
   setSceneReference,
 }) => {
@@ -111,7 +111,7 @@ export const MainEditor: FC<Properties> = ({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <ListObjectEditor
+      <ListEditor
         listObject={displayedRootObject}
         updateListObject={(patch) => {
           setRootObject(patch ?? rootList);
