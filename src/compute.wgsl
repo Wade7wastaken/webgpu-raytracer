@@ -21,13 +21,13 @@ struct Triangle {
 @group(0) @binding(1) var<uniform> uniforms: Uniforms;
 @group(0) @binding(2) var<storage, read> triangles: array<Triangle>;
 
-fn initRng(pixel: vec2<u32>, frame: u32) -> u32 {
+fn init_rng(pixel: vec2<u32>, frame: u32) -> u32 {
     // Adapted from https://github.com/boksajak/referencePT
-    let seed = dot(pixel, vec2<u32>(1u, 500u)) ^ jenkinsHash(frame);
-    return jenkinsHash(seed);
+    let seed = dot(pixel, vec2<u32>(1u, 500u)) ^ jenkins_hash(frame);
+    return jenkins_hash(seed);
 }
 
-fn jenkinsHash(input: u32) -> u32 {
+fn jenkins_hash(input: u32) -> u32 {
     var x = input;
     x += x << 10u;
     x ^= x >> 6u;
@@ -37,7 +37,7 @@ fn jenkinsHash(input: u32) -> u32 {
     return x;
 }
 
-fn rngNextInt(state: ptr<function, u32>) -> u32 {
+fn rng_next_int(state: ptr<function, u32>) -> u32 {
     // PCG random number generator
     // Based on https://www.shadertoy.com/view/XlGcRh
     let newState = *state * 747796405u + 2891336453u;
@@ -54,7 +54,7 @@ fn float_construct_from_u32(m_in: u32) -> f32 {
 
 // Pseudo-random value in half-open range [0:1) from a f32 seed.
 fn rand(state: ptr<function, u32>) -> f32 {
-    let value = rngNextInt(state);
+    let value = rng_next_int(state);
     return float_construct_from_u32(value);
 }
 
@@ -75,7 +75,7 @@ struct HitRecord {
     colorIdx: f32,
 }
 
-fn hit_triangle(r: ptr<function, Ray>, triIdx: u32, max_t: f32, outHitRec: ptr<function, HitRecord>) -> bool {
+fn hit_triangle(r: ptr<function, Ray>, triIdx: u32, max_t: f32, out_hit_rec: ptr<function, HitRecord>) -> bool {
     let tri = triangles[triIdx];
     let a = tri.a.xyz;
     let edge1 = tri.edge1.xyz;
@@ -116,16 +116,16 @@ fn hit_triangle(r: ptr<function, Ray>, triIdx: u32, max_t: f32, outHitRec: ptr<f
         normal = -normal;
     }
 
-    outHitRec.p = p;
-    outHitRec.n = normal;
-    outHitRec.t = t;
-    outHitRec.mat = tri.a.w;
-    outHitRec.colorIdx = tri.edge1.w;
+    out_hit_rec.p = p;
+    out_hit_rec.n = normal;
+    out_hit_rec.t = t;
+    out_hit_rec.mat = tri.a.w;
+    out_hit_rec.colorIdx = tri.edge1.w;
 
     return true;
 }
 
-fn randNormalVector(state: ptr<function, u32>) -> vec3<f32> {
+fn rand_normal_vector(state: ptr<function, u32>) -> vec3<f32> {
     let r = pow(rand(state), 0.33333f);
     let cosTheta = 1f - 2f * rand(state);
     let sinTheta = sqrt(1f - cosTheta * cosTheta);
@@ -138,8 +138,8 @@ fn randNormalVector(state: ptr<function, u32>) -> vec3<f32> {
     return vec3(x, y, z);
 }
 
-fn ray_color(initialRay: Ray, num_tris: u32, max_bounces: u32, state: ptr<function, u32>) -> vec3f {
-    var ray = initialRay;
+fn ray_color(initial_ray: Ray, num_tris: u32, max_bounces: u32, state: ptr<function, u32>) -> vec3f {
+    var ray = initial_ray;
 
     var rayColor = vec3f(1.0, 1.0, 1.0);
 
@@ -192,7 +192,7 @@ fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
         return;
     }
 
-    var rseed = initRng(id.xy, bitcast<u32>(uniforms.time));
+    var rseed = init_rng(id.xy, bitcast<u32>(uniforms.time));
 
     let spp = uniforms.rays_per_pixel;
     var pixel_color = vec3f(0.0, 0.0, 0.0);
