@@ -25,7 +25,7 @@ const startingObjects: SceneObjectNoId[] = [
     base: new Vector3(0, 0, -2),
     u: new Vector3(1, 0, 0),
     v: new Vector3(0, 1, 0),
-    materialName: "lambertian",
+    materialName: "Lambertian",
     colorIndex: 0,
   },
   {
@@ -34,7 +34,7 @@ const startingObjects: SceneObjectNoId[] = [
     base: new Vector3(0, 0, -2),
     u: new Vector3(0, 0, 1),
     v: new Vector3(1, 0, 0),
-    materialName: "lambertian",
+    materialName: "Lambertian",
     colorIndex: 0,
   },
   {
@@ -43,7 +43,7 @@ const startingObjects: SceneObjectNoId[] = [
     base: new Vector3(0, 1, -2),
     u: new Vector3(0, 0, 1),
     v: new Vector3(1, 0, 0),
-    materialName: "lambertian",
+    materialName: "Lambertian",
     colorIndex: 0,
   },
   {
@@ -52,7 +52,7 @@ const startingObjects: SceneObjectNoId[] = [
     base: new Vector3(0, 0, -2),
     u: new Vector3(0, 1, 0),
     v: new Vector3(0, 0, 1),
-    materialName: "lambertian",
+    materialName: "Lambertian",
     colorIndex: 1,
   },
   {
@@ -61,7 +61,7 @@ const startingObjects: SceneObjectNoId[] = [
     base: new Vector3(1, 0, -2),
     u: new Vector3(0, 1, 0),
     v: new Vector3(0, 0, 1),
-    materialName: "lambertian",
+    materialName: "Lambertian",
     colorIndex: 2,
   },
   {
@@ -70,7 +70,7 @@ const startingObjects: SceneObjectNoId[] = [
     base: new Vector3(0.3, 0.995, -1.7),
     u: new Vector3(0.4, 0, 0),
     v: new Vector3(0, 0, 0.4),
-    materialName: "light",
+    materialName: "Emissive",
     colorIndex: 0,
   },
 ];

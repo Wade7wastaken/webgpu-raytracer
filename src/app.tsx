@@ -159,6 +159,11 @@ const App: FC = () => {
         ? navigator.gpu.getPreferredCanvasFormat()
         : "rgba8unorm";
 
+      const fromStorage = localStorage.getItem("presentationFormat");
+      if (fromStorage != undefined) {
+        presentationFormatReference.current = fromStorage as GPUTextureFormat;
+      }
+
       context.configure({
         device,
         format: presentationFormatReference.current,
@@ -166,6 +171,9 @@ const App: FC = () => {
         usage:
           GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
       });
+
+      console.log(presentationFormatReference.current);
+      console.log(context.getConfiguration()?.viewFormats);
 
       let module = device.createShaderModule({
         code: shaderSourceReference.current,
