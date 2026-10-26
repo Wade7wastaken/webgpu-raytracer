@@ -2,7 +2,7 @@ struct Uniforms {
     pixel00_loc: vec3f,
     pixel_delta: mat2x3f,
     camera_center: vec3f,
-    time: f32,
+    frame_count: u32,
     rays_per_pixel: u32,
     max_bounces: u32,
     num_tris: u32,
@@ -20,6 +20,7 @@ struct Triangle {
 @group(0) @binding(0) var tex: texture_storage_2d<${presentationFormat}, write>;
 @group(0) @binding(1) var<uniform> uniforms: Uniforms;
 @group(0) @binding(2) var<storage, read> triangles: array<Triangle>;
+@group(0) @binding(3) var<storage, read_write> accumulation: array<vec4f>;
 
 fn init_rng(pixel: vec2<u32>, frame: u32) -> u32 {
     // Adapted from https://github.com/boksajak/referencePT
@@ -192,7 +193,7 @@ fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
         return;
     }
 
-    var rseed = init_rng(id.xy, bitcast<u32>(uniforms.time));
+    var rseed = init_rng(id.xy, uniforms.frame_count);
 
     let spp = uniforms.rays_per_pixel;
     var pixel_color = vec3f(0.0, 0.0, 0.0);
@@ -204,5 +205,13 @@ fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
     }
     pixel_color /= f32(spp);
 
-    textureStore(tex, id.xy, vec4f(clamp(pixel_color, vec3f(0.0, 0.0, 0.0), vec3f(1.0, 1.0, 1.0)), 1.0));
+    let pixel_index = id.y * tex_dims.x + id.x;
+    var accumulated_color = pixel_color;
+    if (uniforms.frame_count > 0u) {
+        let previous_color = accumulation[pixel_index].xyz;
+        accumulated_color = previous_color + (pixel_color - previous_color) / f32(uniforms.frame_count + 1u);
+    }
+    accumulation[pixel_index] = vec4f(accumulated_color, 1.0);
+
+    textureStore(tex, id.xy, vec4f(clamp(accumulated_color, vec3f(0.0, 0.0, 0.0), vec3f(1.0, 1.0, 1.0)), 1.0));
 }

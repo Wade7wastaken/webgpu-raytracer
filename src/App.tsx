@@ -85,6 +85,7 @@ const App: FC = () => {
     message: "No compile result yet",
   });
   const isRunningReference = useRef(false);
+  const accumulationResetReference = useRef(true);
 
   const raysPerPixelReference = useRef(10);
   const maxBouncesReference = useRef(10);
@@ -197,6 +198,10 @@ const App: FC = () => {
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
       });
 
+      let accumulationBuffer: GPUBuffer | undefined;
+      let accumulatedFrameCount = 0;
+      let previousCameraParameters: number[] | undefined;
+
       device.queue.writeBuffer(triangleBuffer, 0, sceneTriangles.current);
 
       let pipeline = device.createComputePipeline({
@@ -217,9 +222,9 @@ const App: FC = () => {
       const setUniforms = (
         canvasWidth: number,
         canvasHeight: number,
-        time: number,
         deltaTime: number,
         device: GPUDevice,
+        frameCount: number,
       ): void => {
         const fov = 40;
         const focalLength = 1;
@@ -293,6 +298,20 @@ const App: FC = () => {
           .clone()
           .add(pixelDeltaU.clone().add(pixelDeltaV).multiplyScalar(0.5));
 
+        const cameraParameters = [
+          ...camera_center,
+          ...pixel00Location,
+          ...pixelDeltaU,
+          ...pixelDeltaV,
+        ];
+        const priorCameraParameters = previousCameraParameters;
+        const didCameraChange =
+          cameraParameters.length !== priorCameraParameters?.length ||
+          cameraParameters.some(
+            (parameter, index) => parameter !== priorCameraParameters[index],
+          );
+        previousCameraParameters = cameraParameters;
+
         if (sceneStale.current) {
           sceneTriangles.current = formatTriangles(
             sceneObjectToTriangles(
@@ -315,16 +334,18 @@ const App: FC = () => {
           pixel00_loc: pixel00Location.toArray(),
           pixel_delta: [...pixelDeltaU, 0, ...pixelDeltaV, 0],
           camera_center: camera_center.toArray(),
-          time,
+          frame_count: didCameraChange ? 0 : frameCount,
           rays_per_pixel: raysPerPixelReference.current,
           max_bounces: maxBouncesReference.current,
           num_tris: sceneTriangles.current.length / TRIANGLE_FLOAT_COUNT,
         });
+
+        if (didCameraChange) {
+          accumulationResetReference.current = true;
+        }
       };
 
       const now = performance.now();
-
-      const startTime = now;
       let lastTime = now;
       let lastFpsUpdate = now;
       let fpsUpdateFrameCount = 0;
@@ -374,6 +395,7 @@ const App: FC = () => {
               });
 
               bindGroupLayout = pipeline.getBindGroupLayout(0);
+              accumulationResetReference.current = true;
               setCompileResult({
                 status: "passed",
                 message: "Shader compiled correctly",
@@ -424,13 +446,25 @@ const App: FC = () => {
 
         const canvasTexture = context.getCurrentTexture();
 
+        if (accumulationBuffer === undefined) {
+          accumulationBuffer = device.createBuffer({
+            size: canvasTexture.width * canvasTexture.height * 16,
+            usage: GPUBufferUsage.STORAGE,
+          });
+          accumulationResetReference.current = true;
+        }
+
         setUniforms(
           canvasTexture.width,
           canvasTexture.height,
-          (now - startTime) / 1000,
           deltaTime,
           device,
+          accumulationResetReference.current ? 0 : accumulatedFrameCount,
         );
+        if (accumulationResetReference.current) {
+          accumulatedFrameCount = 0;
+        }
+        accumulationResetReference.current = false;
         device.queue.writeBuffer(uniformBuffer, 0, uniformsData.arrayBuffer);
 
         const bindGroup = device.createBindGroup({
@@ -439,6 +473,7 @@ const App: FC = () => {
             { binding: 0, resource: canvasTexture.createView() },
             { binding: 1, resource: { buffer: uniformBuffer } },
             { binding: 2, resource: { buffer: triangleBuffer } },
+            { binding: 3, resource: { buffer: accumulationBuffer } },
           ],
           label: "bindGroup0",
         });
@@ -455,6 +490,7 @@ const App: FC = () => {
 
         const commandBuffer = encoder.finish();
         device.queue.submit([commandBuffer]);
+        accumulatedFrameCount += 1;
 
         rafId = requestAnimationFrame(render);
       }
@@ -478,7 +514,10 @@ const App: FC = () => {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (!isRunningReference.current || document.pointerLockElement == undefined) {
+      if (
+        !isRunningReference.current ||
+        document.pointerLockElement == undefined
+      ) {
         return;
       }
       let shouldPreventDefault = true;
@@ -519,7 +558,10 @@ const App: FC = () => {
     };
 
     const onKeyUp = (event: KeyboardEvent): void => {
-      if (!isRunningReference.current || document.pointerLockElement == undefined) {
+      if (
+        !isRunningReference.current ||
+        document.pointerLockElement == undefined
+      ) {
         return;
       }
       let shouldPreventDefault = true;
@@ -586,12 +628,14 @@ const App: FC = () => {
   const updateSceneReference = useCallback((patch: SceneObject): void => {
     sceneReference.current = patch;
     sceneStale.current = true;
+    accumulationResetReference.current = true;
     sceneTriangles.current = formatTriangles(
       sceneObjectToTriangles(patch, materialsReference.current.materials),
     );
   }, []);
 
   const updateMaterials = useCallback((patch: MaterialList): void => {
+    accumulationResetReference.current = true;
     const previousMaterials = materialsReference.current.materials;
     const hasMaterialOrderChanged =
       previousMaterials.length !== patch.materials.length ||
@@ -670,6 +714,7 @@ const App: FC = () => {
               onChange={(event) => {
                 const value = Number.parseInt(event.target.value);
                 raysPerPixelReference.current = value;
+                accumulationResetReference.current = true;
                 setRaysPerPixel(value);
               }}
             />
@@ -691,6 +736,7 @@ const App: FC = () => {
               onChange={(event) => {
                 const value = Number.parseInt(event.target.value);
                 maxBouncesReference.current = value;
+                accumulationResetReference.current = true;
                 setMaxBounces(value);
               }}
             />
