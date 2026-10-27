@@ -59,6 +59,23 @@ fn rand(state: ptr<function, u32>) -> f32 {
     return float_construct_from_u32(value);
 }
 
+fn rand_vec(state: ptr<function, u32>) -> vec3f {
+    return vec3f(rand(state), rand(state), rand(state));
+}
+
+fn rand_normal_vec(state: ptr<function, u32>) -> vec3<f32> {
+    let r = pow(rand(state), 0.33333f);
+    let cos_theta = 1f - 2f * rand(state);
+    let sin_theta = sqrt(1f - cos_theta * cos_theta);
+    let phi = 2f * 3.1415926535 * rand(state);
+
+    let x = r * sin_theta * cos(phi);
+    let y = r * sin_theta * sin(phi);
+    let z = cos_theta;
+
+    return vec3(x, y, z);
+}
+
 struct Ray {
     orig: vec3f,
     dir: vec3f,
@@ -107,7 +124,7 @@ fn hit_triangle(r: ptr<function, Ray>, tri_idx: u32, max_t: f32, out_hit_rec: pt
 
     let t = dot(edge2, s_cross_e1) * inv_denom;
 
-    if (t < 0.01 || t > max_t) {
+    if (t < 0.0001 || t > max_t) {
         return false;
     }
 
@@ -124,19 +141,6 @@ fn hit_triangle(r: ptr<function, Ray>, tri_idx: u32, max_t: f32, out_hit_rec: pt
     out_hit_rec.color_idx = tri.edge1.w;
 
     return true;
-}
-
-fn rand_normal_vector(state: ptr<function, u32>) -> vec3<f32> {
-    let r = pow(rand(state), 0.33333f);
-    let cos_theta = 1f - 2f * rand(state);
-    let sin_theta = sqrt(1f - cos_theta * cos_theta);
-    let phi = 2f * 3.1415926535 * rand(state);
-
-    let x = r * sin_theta * cos(phi);
-    let y = r * sin_theta * sin(phi);
-    let z = cos_theta;
-
-    return vec3(x, y, z);
 }
 
 fn ray_color(initial_ray: Ray, num_tris: u32, max_bounces: u32, state: ptr<function, u32>) -> vec3f {
@@ -162,10 +166,7 @@ fn ray_color(initial_ray: Ray, num_tris: u32, max_bounces: u32, state: ptr<funct
         if max_t < far_away {
             //${materials}
         } else {
-            // return ray_color * vec3f(0.1, 0.1, 0.1);
-            let unit_dir = normalize(ray.dir);
-            let a = 0.5 * (unit_dir.y + 1.0);
-            return ray_color * ((1.0-a)*vec3f(1.0, 1.0, 1.0) + a*vec3f(0.3, 0.7, 1.0));
+            //${sky}
         }
     }
 

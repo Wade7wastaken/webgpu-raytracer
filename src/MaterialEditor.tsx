@@ -62,7 +62,7 @@ export const MaterialEditor: FC<Properties> = ({
     const selectedIndex = materials.materials.findIndex(
       (material) => material.name === selectedMaterial,
     );
-    if (selectedIndex === -1) {
+    if (selectedIndex === -1 || materials.materials[selectedIndex]?.name === "Sky") {
       return;
     }
 
