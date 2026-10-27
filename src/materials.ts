@@ -180,7 +180,5 @@ return vec3f(1.0, 0.0, 1.0);
     )
     .replace("//${sky}", () => sky);
 
-  console.log(result);
-
   return result;
 };

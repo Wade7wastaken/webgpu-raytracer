@@ -98,7 +98,7 @@ const App: FC = () => {
   const shaderSourceReference = useRef<string>(
     processShader(initialMaterials, defaultPresentationFormat),
   );
-  const shaderStaleReference = useRef(false);
+  const shaderStaleReference = useRef(true); // need to recompile with the actual presentationFormat
   const shaderCompileVersionReference = useRef(0);
 
   const sceneReference = useRef<SceneObject>({
