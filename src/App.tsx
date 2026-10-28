@@ -120,6 +120,7 @@ const App: FC = () => {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (navigator.gpu == undefined) {
         fail("GPU not available on this browser");
+        return;
       }
 
       const adapter = await navigator.gpu.requestAdapter({
@@ -171,6 +172,7 @@ const App: FC = () => {
         // This is what's required to be able to write to a texture from a compute shader
         usage:
           GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
+        colorSpace: "srgb",
       });
 
       let module = device.createShaderModule({
@@ -558,12 +560,6 @@ const App: FC = () => {
     };
 
     const onKeyUp = (event: KeyboardEvent): void => {
-      if (
-        !isRunningReference.current ||
-        document.pointerLockElement == undefined
-      ) {
-        return;
-      }
       let shouldPreventDefault = true;
       switch (event.key.toLowerCase()) {
         case "w": {

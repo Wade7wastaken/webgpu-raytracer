@@ -101,7 +101,7 @@ export type ShaderCompileResult = {
   message: string;
 };
 
-export const defaultNewMaterial = `fn scatter(point: vec3f, normal: vec3f, ray_time: f32, mat_data: f32) {
+export const defaultNewMaterial = `fn scatter(ray: Ray, point: vec3f, normal: vec3f, ray_time: f32, mat_data: f32) {
 
 }`;
 
@@ -158,9 +158,11 @@ let mat_data = hit_rec.color_idx;
 switch u32(hit_rec.mat) {`;
 
   const materialSource = materialList.materials
-    .filter((material) => material.name !== "Sky")
-    .map((material) => formatMaterialSource(material.source))
-    .map((source, index) => `case ${index}: {\n${source}\n}`)
+    .map((material, index) =>
+      material.name === "Sky"
+        ? ""
+        : `case ${index}: {\n${formatMaterialSource(material.source)}\n}`,
+    )
     .join("\n");
 
   const materialEnd = `default {

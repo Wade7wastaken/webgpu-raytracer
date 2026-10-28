@@ -22,9 +22,9 @@ struct Triangle {
 @group(0) @binding(2) var<storage, read> triangles: array<Triangle>;
 @group(0) @binding(3) var<storage, read_write> accumulation: array<vec4f>;
 
-fn init_rng(pixel: vec2<u32>, frame: u32) -> u32 {
+fn init_rng(pixel: vec2<u32>, frame: u32, width: u32) -> u32 {
     // Adapted from https://github.com/boksajak/referencePT
-    let seed = dot(pixel, vec2<u32>(1u, 500u)) ^ jenkins_hash(frame);
+    let seed = dot(pixel, vec2<u32>(1u, width)) ^ jenkins_hash(frame);
     return jenkins_hash(seed);
 }
 
@@ -71,7 +71,7 @@ fn rand_normal_vec(state: ptr<function, u32>) -> vec3<f32> {
 
     let x = r * sin_theta * cos(phi);
     let y = r * sin_theta * sin(phi);
-    let z = cos_theta;
+    let z = r * cos_theta;
 
     return vec3(x, y, z);
 }
@@ -186,6 +186,14 @@ fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
     return Ray(uniforms.camera_center, ray_direction);
 }
 
+fn linear_to_srgb(c: f32) -> f32 {
+    if (c <= 0.0031308) {
+        return 12.92 * c;
+    }
+
+    return 1.055 * pow(c, 1.0f / 2.4f) - 0.055;
+}
+
 @compute @workgroup_size(16, 16) fn cs(
     @builtin(global_invocation_id) id: vec3u
 ) {
@@ -194,7 +202,7 @@ fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
         return;
     }
 
-    var rseed = init_rng(id.xy, uniforms.frame_count);
+    var rseed = init_rng(id.xy, uniforms.frame_count, tex_dims.x);
 
     let spp = uniforms.rays_per_pixel;
     var pixel_color = vec3f(0.0, 0.0, 0.0);
@@ -214,5 +222,12 @@ fn get_ray(pixel: vec2u, rseed: ptr<function, u32>) -> Ray {
     }
     accumulation[pixel_index] = vec4f(accumulated_color, 1.0);
 
-    textureStore(tex, id.xy, vec4f(clamp(accumulated_color, vec3f(0.0, 0.0, 0.0), vec3f(1.0, 1.0, 1.0)), 1.0));
+    let clamped = clamp(accumulated_color, vec3f(0.0, 0.0, 0.0), vec3f(1.0, 1.0, 1.0));
+    let srgb = vec3f(
+        linear_to_srgb(clamped.r),
+        linear_to_srgb(clamped.g),
+        linear_to_srgb(clamped.b),
+    );
+
+    textureStore(tex, id.xy, vec4f(srgb, 1.0));
 }

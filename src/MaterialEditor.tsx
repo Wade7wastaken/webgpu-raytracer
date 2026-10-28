@@ -55,7 +55,7 @@ export const MaterialEditor: FC<Properties> = ({
   };
 
   const deleteMaterial = (): void => {
-    if (materials.materials.length <= 1) {
+    if (materials.materials.length <= 2) {
       return;
     }
 

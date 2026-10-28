@@ -101,11 +101,13 @@ export const MeshEditor: FC<Properties> = ({
                 });
               }}
             >
-              {materials.materials.map((material) => (
-                <option key={material.name} value={material.name}>
-                  {material.name}
-                </option>
-              ))}
+              {materials.materials
+                .filter((material) => material.name !== "Sky")
+                .map((material) => (
+                  <option key={material.name} value={material.name}>
+                    {material.name}
+                  </option>
+                ))}
             </select>
           </label>
           <label className="grid gap-1 text-xs text-zinc-500">
