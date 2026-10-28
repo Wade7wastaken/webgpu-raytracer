@@ -79,6 +79,7 @@ const App: FC = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [raysPerPixel, setRaysPerPixel] = useState(10);
   const [maxBounces, setMaxBounces] = useState(10);
+  const [cameraSpeed, setCameraSpeed] = useState(0.001);
   const [materials, setMaterials] = useState<MaterialList>(initialMaterials);
   const [compileResult, setCompileResult] = useState<ShaderCompileResult>({
     status: "idle",
@@ -89,6 +90,7 @@ const App: FC = () => {
 
   const raysPerPixelReference = useRef(10);
   const maxBouncesReference = useRef(10);
+  const cameraSpeedReference = useRef(0.001);
 
   const defaultPresentationFormat = "bgra8unorm";
   const materialsReference = useRef<MaterialList>(initialMaterials);
@@ -249,7 +251,7 @@ const App: FC = () => {
         const forward = new Vector3(-directionX, 0, -directionZ).normalize();
         const right = w.clone().cross(vup).normalize();
 
-        const camSpeed = 0.001 * deltaTime;
+        const camSpeed = cameraSpeedReference.current * deltaTime;
 
         if (keysReference.current.W) {
           cameraPositionReference.current.add(
@@ -754,6 +756,27 @@ const App: FC = () => {
                 maxBouncesReference.current = value;
                 accumulationResetReference.current = true;
                 setMaxBounces(value);
+              }}
+            />
+          </label>
+          <label className="flex items-center gap-2 text-xs">
+            <span className="whitespace-nowrap text-zinc-400">
+              Camera Speed
+            </span>
+            <span className="w-7 text-right font-mono text-zinc-200 tabular-nums">
+              {cameraSpeed}
+            </span>
+            <input
+              className="h-2 w-28 cursor-pointer appearance-none rounded-full bg-zinc-700 accent-zinc-300 focus-visible:outline-2 focus-visible:outline-zinc-500"
+              type="range"
+              min={0.001}
+              max={0.1}
+              step={0.001}
+              value={cameraSpeed}
+              onChange={(event) => {
+                const value = Number(event.target.value);
+                cameraSpeedReference.current = value;
+                setCameraSpeed(value);
               }}
             />
           </label>
